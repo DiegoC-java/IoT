@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: iot_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # POSTGRES_HOST_AUTH_METHOD: trust  # Usar solo en desarrollo, no recomendado para producción
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./BaseDeDatos/init:/docker-entrypoint-initdb.d
+    networks:
+      - iot_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: iot_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "8080:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - iot_network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  iot_network:
+    driver: bridge

@@ -1,0 +1,10 @@
+{
+  "name": "iot-database",
+  "version": "1.0.0",
+  "description": "PostgreSQL manager for IoT Dashboard",
+  "main": "postgresql.js",
+  "dependencies": {
+    "pg": "^8.16.3",
+    "dotenv": "^16.6.1"
+  }
+}
