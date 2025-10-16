@@ -3,7 +3,7 @@
 
 // --- CONFIGURACIÓN DE RED ---
 const char* ssid = "Altro52.4G";
-const char* password = "victor19";
+const char* password = "*****";
 
 // --- CONFIGURACIÓN DE HORA (NTP) ---
 const char* ntpServer = "pool.ntp.org";
@@ -11,7 +11,7 @@ const long gmtOffset_sec = -10800; // Offset GMT en segundos (UTC-3 para Chile =
 const int daylightOffset_sec = 0;  // Horario de verano (0 si no aplica)
 
 // --- Pines de los componentes ---
-const int ledRojoPin = 22;
+const int ledRojoPin = 19;
 const int sensorPirPin = 23;
 const int buzzerPin = 13;
 
