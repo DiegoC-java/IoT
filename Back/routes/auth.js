@@ -25,13 +25,6 @@ const validUsers = [
         role: 'user',
         email: 'user@iot.local',
         created_at: new Date()
-    },
-    { 
-        username: 'demo', 
-        password: 'demo123', 
-        role: 'demo',
-        email: 'demo@iot.local',
-        created_at: new Date()
     }
 ];
 
