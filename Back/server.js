@@ -49,10 +49,12 @@ app.get('/api/health', async (req, res) => {
 // Importar rutas DESPUÉS de configurar la base de datos
 const devicesRoutes = require('./routes/devices');
 const dashboardRoutes = require('./routes/dashboard');
+const authRoutes = require('./routes/auth');
 
 // Usar rutas
 app.use('/api', devicesRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api', authRoutes);
 
 // Middleware para rutas no encontradas
 app.use('*', (req, res) => {
@@ -61,6 +63,7 @@ app.use('*', (req, res) => {
         message: `Ruta ${req.originalUrl} no encontrada`,
         availableRoutes: [
             'GET /api/health',
+            'POST /api/auth/login',
             'GET /api/devices',
             'GET /api/devices/:id',
             'POST /api/devices',

@@ -1,45 +1,46 @@
--- Crear usuario y base de datos (solo si no existen)
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'iot_user') THEN
-        CREATE USER iot_user WITH PASSWORD 'iot_password123';
-    END IF;
-END
-$$;
-
--- Crear base de datos si no existe
-SELECT 'CREATE DATABASE iot_dashboard OWNER iot_user'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'iot_dashboard')\gexec
-
--- Otorgar privilegios
-GRANT ALL PRIVILEGES ON DATABASE iot_dashboard TO iot_user;
-
--- Conectar a la base de datos iot_dashboard
+-- Conectar a la base de datos
 \c iot_dashboard;
 
--- Otorgar permisos al usuario
-GRANT ALL PRIVILEGES ON SCHEMA public TO iot_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO iot_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO iot_user;
-
--- Crear tabla de dispositivos
-CREATE TABLE IF NOT EXISTS devices (
-    id VARCHAR(20) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    location VARCHAR(100) NOT NULL,
-    status VARCHAR(20) DEFAULT 'offline',
-    last_reading TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    value DECIMAL(10,2),
-    unit VARCHAR(20),
-    battery INTEGER,
-    signal VARCHAR(20),
+-- Crear tabla de usuarios si no existe
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL, -- En producción usar hash bcrypt
+    email VARCHAR(100) UNIQUE NOT NULL,
+    role VARCHAR(20) DEFAULT 'user',
+    active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
 );
 
--- Insertar datos de ejemplo
-INSERT INTO devices (id, name, type, location, status, value, unit, battery, signal) VALUES
-('DEV-001', 'Sensor Temperatura Exterior', 'Sensor Temperatura', 'Jardín', 'online', 24.3, '°C', 85, 'excelente'),
-('DEV-002', 'Sensor Humedad Invernadero', 'Sensor Humedad', 'Invernadero', 'online', 68.5, '%', 92, 'buena'),
-('DEV-003', 'Cámara Seguridad Principal', 'Cámara', 'Entrada', 'online', 1080, 'p', NULL, 'excelente');
+-- Crear tabla para registrar intentos de login
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    success BOOLEAN NOT NULL,
+    ip_address INET,
+    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Dar permisos sobre las nuevas tablas
+GRANT ALL PRIVILEGES ON TABLE users TO iot_user;
+GRANT ALL PRIVILEGES ON TABLE login_attempts TO iot_user;
+GRANT USAGE, SELECT ON SEQUENCE users_id_seq TO iot_user;
+GRANT USAGE, SELECT ON SEQUENCE login_attempts_id_seq TO iot_user;
+
+-- Insertar usuarios de ejemplo solo si la tabla está vacía
+INSERT INTO users (username, password, email, role)
+SELECT * FROM (VALUES
+    ('admin', 'admin123', 'admin@iot.local', 'admin'),
+    ('user', 'user123', 'user@iot.local', 'user'),
+    ('demo', 'demo123', 'demo@iot.local', 'demo'),
+    ('operator', 'operator123', 'operator@iot.local', 'operator')
+) AS t(username, password, email, role)
+WHERE NOT EXISTS (SELECT 1 FROM users);
+
+-- Confirmar inserción
+SELECT 'Usuarios creados correctamente. Total: ' || COUNT(*) FROM users;
+
+-- Mostrar usuarios creados
+SELECT username, role, email, created_at FROM users ORDER BY created_at;

@@ -175,4 +175,12 @@ Para que funcione la conexión completa:
 2. ✅ Backend corriendo (Node.js)
 3. ✅ Frontend abierto (index.html)
 
+
+
+
+
+## pagina principal
+
+http://localhost:8000/
+
 **¡Todo listo para usar!** 🎉
