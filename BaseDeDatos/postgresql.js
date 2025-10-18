@@ -2,8 +2,15 @@ const { Pool } = require('pg');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Cargar variables de entorno desde la raíz del proyecto
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// ✅ Cargar .env ANTES de hacer cualquier cosa
+const envPath = path.resolve(__dirname, '..', '.env');
+dotenv.config({ path: envPath });
+
+// Verificar que las variables se cargaron
+if (!process.env.DB_PASSWORD) {
+    console.error('❌ ERROR: DB_PASSWORD no está definida en .env');
+    console.log('📁 Ruta .env:', envPath);
+}
 
 class PostgreSQLManager {
     constructor() {
@@ -31,7 +38,8 @@ class PostgreSQLManager {
                 host: this.connectionConfig.host,
                 port: this.connectionConfig.port,
                 database: this.connectionConfig.database,
-                user: this.connectionConfig.user
+                user: this.connectionConfig.user,
+                password: this.connectionConfig.password ? '***' + this.connectionConfig.password.slice(-3) : 'NO DEFINIDA'
             });
 
             this.pool = new Pool(this.connectionConfig);

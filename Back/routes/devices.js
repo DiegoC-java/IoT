@@ -291,4 +291,110 @@ router.delete('/devices/:id', async (req, res) => {
     }
 });
 
+// POST - Recibir evento de movimiento del ESP32
+router.post('/devices/motion', async (req, res) => {
+    try {
+        console.log('📡 Evento recibido del ESP32:', req.body);
+        
+        const { device_id, event_type, sensor_type, timestamp, sensor_value, additional_data } = req.body;
+        
+        // Validaciones básicas
+        if (!device_id || !event_type || !timestamp) {
+            return res.status(400).json({
+                success: false,
+                message: 'device_id, event_type y timestamp son requeridos'
+            });
+        }
+        
+        if (!db || !db.isAvailable || !db.pool) {
+            console.log('⚠️  Base de datos no disponible, evento no guardado');
+            return res.status(503).json({
+                success: false,
+                message: 'Base de datos no disponible. Evento recibido pero no guardado.',
+                dataSource: 'none'
+            });
+        }
+        
+        const query = `
+            INSERT INTO device_events (device_id, event_type, sensor_type, timestamp, sensor_value, additional_data)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        `;
+        
+        const result = await db.pool.query(query, [
+            device_id, 
+            event_type, 
+            sensor_type || null,
+            timestamp, 
+            sensor_value || null,
+            additional_data ? JSON.stringify(additional_data) : null
+        ]);
+        
+        // Actualizar última vez visto del dispositivo
+        await db.pool.query(
+            `INSERT INTO devices (id, name, status, last_seen) 
+             VALUES ($1, $2, 'online', CURRENT_TIMESTAMP)
+             ON CONFLICT (id) 
+             DO UPDATE SET status = 'online', last_seen = CURRENT_TIMESTAMP`,
+            [device_id, device_id]
+        );
+        
+        console.log(`✅ Evento guardado: ${event_type} (${sensor_type || 'N/A'}) del dispositivo ${device_id}`);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Evento guardado exitosamente',
+            event: result.rows[0],
+            dataSource: 'database'
+        });
+    } catch (error) {
+        console.error('❌ Error guardando evento:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al guardar evento',
+            error: error.message
+        });
+    }
+});
+
+// GET - Obtener eventos de un dispositivo
+router.get('/devices/:deviceId/events', async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        const { limit = 50, offset = 0 } = req.query;
+        
+        if (!db || !db.isAvailable || !db.pool) {
+            return res.status(503).json({
+                success: false,
+                message: 'Base de datos no disponible.',
+                dataSource: 'none'
+            });
+        }
+        
+        const query = `
+            SELECT * FROM device_events 
+            WHERE device_id = $1 
+            ORDER BY timestamp DESC 
+            LIMIT $2 OFFSET $3
+        `;
+        
+        const result = await db.pool.query(query, [deviceId, limit, offset]);
+        
+        res.json({
+            success: true,
+            count: result.rows.length,
+            data: result.rows,
+            message: `${result.rows.length} eventos encontrados`,
+            dataSource: 'database'
+        });
+    } catch (error) {
+        console.error('Error obteniendo eventos:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al obtener eventos',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
