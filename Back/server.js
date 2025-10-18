@@ -84,16 +84,18 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Iniciar servidor
-app.listen(PORT, () => {
+// Iniciar servidor en todas las interfaces (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
     console.log('\n🚀 ========================================');
     console.log(`   Backend IoT Server iniciado exitosamente`);
     console.log('🚀 ========================================');
-    console.log(`📡 Servidor corriendo en: http://localhost:${PORT}`);
-    console.log(`🔗 API endpoints disponibles en: http://localhost:${PORT}/api`);
+    console.log(`📡 Servidor corriendo en: http://0.0.0.0:${PORT}`);
+    console.log(`🔗 Local: http://localhost:${PORT}/api`);
+    console.log(`🌐 Red: http://192.168.1.138:${PORT}/api`);
     console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
     console.log(`📊 Dashboard data: http://localhost:${PORT}/api/dashboard`);
     console.log(`🔧 Dispositivos: http://localhost:${PORT}/api/devices`);
+    console.log(`📱 ESP32 endpoint: http://192.168.1.138:${PORT}/api/devices/motion`);
     console.log('========================================\n');
     
     // Verificar conexión a la base de datos
