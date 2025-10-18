@@ -9,14 +9,12 @@ Todos están en la carpeta: `Esp32/V2_ambosSensores/`
 
 ---
 
-## 🔧 PASO 1: Instalar Librerías (Solo una vez)
+## 🔧 PASO 1: Instalar Librería (Solo una vez)
 
 1. Abre **Arduino IDE**
 2. Ve a: `Sketch` → `Include Library` → `Manage Libraries`
-3. Instala estas **3 librerías**:
-   - **ArduinoJson** by Benoit Blanchon (versión 6.x)
-   - **Adafruit MPU6050** by Adafruit
-   - **Adafruit Unified Sensor** by Adafruit (se instala automáticamente con MPU6050)
+3. Busca: **ArduinoJson**
+4. Instala: **ArduinoJson by Benoit Blanchon** (versión 6.x)
 
 ---
 
@@ -145,13 +143,13 @@ Si algo no funciona:
 
 ## ✅ CHECKLIST RÁPIDO
 
-- [ ] Librerías instaladas (ArduinoJson + Adafruit MPU6050)
+- [ ] Librería ArduinoJson instalada
 - [ ] WiFi configurado en config.h
 - [ ] Backend de Diego corriendo (él debe hacer esto)
 - [ ] Código subido al ESP32
 - [ ] Serial Monitor abierto (115200 baud)
 - [ ] WiFi conectado (IP obtenida)
-- [ ] Sensores respondiendo (PIR y MPU6050)
+- [ ] Sensores respondiendo
 
 ---
 
