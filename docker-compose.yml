@@ -10,6 +10,7 @@ services:
       POSTGRES_USER: iot_user
       POSTGRES_PASSWORD: iot_password123
     ports:
+    
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -27,7 +28,7 @@ services:
     container_name: iot_pgadmin
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@iot.local
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin123
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
