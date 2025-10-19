@@ -222,7 +222,14 @@ async function loadData() {
 
         // Unir los datos en currentData
         currentData = dashboardResult.data || {};
-        currentData.devices = devicesResult.data || [];
+        // Normalizar los dispositivos para que tengan los campos correctos
+        currentData.devices = (devicesResult.data || []).map(device => ({
+            ...device,
+            // Aceptar tanto 'type' como 'device_type'
+            type: device.type || device.device_type || '',
+            // Aceptar tanto 'lastReading' como 'last_reading'
+            lastReading: device.lastReading || device.last_reading || '',
+        }));
 
         updateKPIs();
         updateLastUpdate();
