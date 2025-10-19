@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Sensores IoT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="iot-bg-bubble b1"></div>
+    <div class="iot-bg-bubble b2"></div>
+    <div class="iot-bg-bubble b3"></div>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-microchip"></i>
+                <h1>Control de Sensores</h1>
+            </div>
+            <div class="header-controls">
+                <a href="index.html" class="btn-refresh"><i class="fas fa-arrow-left"></i> Volver</a>
+            </div>
+        </div>
+    </header>
+    <main class="main-content">
+        <section class="sensors-section">
+            <h2>Mis Sensores</h2>
+            <div class="sensors-grid">
+                <div class="sensor-card" id="pirSensor">
+                    <div class="sensor-icon sensor-mov">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <h3>Sensor de movimiento</h3>
+                    <button class="btn-action" onclick="toggleSensor('pir')" id="pirBtn">Activar</button>
+                </div>
+                <div class="sensor-card" id="vibrationSensor">
+                    <div class="sensor-icon sensor-vib">
+                        <i class="fas fa-broadcast-tower"></i>
+                    </div>
+                    <h3>Sensor de vibración</h3>
+                    <button class="btn-action" onclick="toggleSensor('vibration')" id="vibrationBtn">Activar</button>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="devices.js"></script>
+</body>
+</html>

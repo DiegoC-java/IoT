@@ -1,3 +1,142 @@
+/* Fondo visual atractivo para la página de sensores */
+body {
+    background: linear-gradient(120deg, #1e293b 0%, #334155 50%, #64748b 100%);
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Detalles decorativos suaves (burbujas) */
+.iot-bg-bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.18;
+    z-index: 0;
+}
+.iot-bg-bubble.b1 {
+    width: 320px; height: 320px;
+    left: -120px; top: 80px;
+    background: radial-gradient(circle, #2563ebbb 0%, #1e293b 100%);
+}
+.iot-bg-bubble.b2 {
+    width: 220px; height: 220px;
+    right: -80px; top: 320px;
+    background: radial-gradient(circle, #10b981bb 0%, #334155 100%);
+}
+.iot-bg-bubble.b3 {
+    width: 180px; height: 180px;
+    left: 40vw; bottom: -90px;
+    background: radial-gradient(circle, #f59e0bbb 0%, #64748b 100%);
+}
+/* Iconos y estilos extra para la página de sensores */
+.sensor-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+    background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+    color: #2563eb;
+    transition: box-shadow 0.3s;
+}
+.sensor-mov {
+    background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+    color: #f59e0b;
+}
+.sensor-vib {
+    background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+    color: #10b981;
+}
+.sensor-card {
+    position: relative;
+    overflow: hidden;
+    border: 1.5px solid #e0e7ef;
+    box-shadow: 0 4px 24px 0 rgba(37,99,235,0.04);
+    transition: box-shadow 0.3s, transform 0.3s;
+}
+.sensor-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(37,99,235,0.10);
+    transform: translateY(-4px) scale(1.03);
+    border-color: #2563eb33;
+}
+.sensor-card h3 {
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+.sensor-card .btn-action {
+    margin-top: 0.5rem;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+.sensor-card .btn-action.active {
+    background: var(--danger-color);
+    color: #fff;
+}
+.sensor-card .btn-action:active {
+    transform: scale(0.97);
+}
+/* Estilos para la página de control de sensores */
+.sensors-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.sensors-section h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+.sensors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.sensor-card {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+}
+
+.sensor-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.sensor-card .btn-action {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.sensor-card .btn-action.active {
+    background: var(--danger-color);
+}
+
+.sensor-card .btn-action:hover {
+    background: #1d4ed8;
+}
 /* Reset y configuraciones básicas */
 * {
     margin: 0;
@@ -110,10 +249,13 @@ body {
     left: 0;
     width: 280px;
     height: calc(100vh - 70px);
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
+    background: rgba(36, 54, 94, 0.72);
+    border-right: 2.5px solid #2563eb44;
     overflow-y: auto;
     z-index: 999;
+    box-shadow: 4px 0 32px 0 rgba(37,99,235,0.08);
+    backdrop-filter: blur(8px);
+    transition: background 0.3s, border 0.3s;
 }
 
 .nav-menu ul {
@@ -131,26 +273,37 @@ body {
     gap: 0.75rem;
     padding: 0.75rem 1.5rem;
     text-decoration: none;
-    color: var(--text-secondary);
+    color: #e0e7ef;
+    font-weight: 500;
+    letter-spacing: 0.5px;
     transition: var(--transition);
     border-right: 3px solid transparent;
+    border-radius: 8px 0 0 8px;
+    margin: 0.25rem 0;
+    position: relative;
+    z-index: 1;
 }
 
 .nav-link:hover {
-    background: var(--bg-primary);
-    color: var(--primary-color);
+    background: rgba(37,99,235,0.10);
+    color: #60a5fa;
+    border-right: 3px solid #2563eb;
+    box-shadow: 2px 0 12px 0 rgba(37,99,235,0.08);
 }
 
 .nav-item.active .nav-link {
-    background: var(--bg-primary);
-    color: var(--primary-color);
-    border-right-color: var(--primary-color);
-    font-weight: 600;
+    background: linear-gradient(90deg, #2563eb33 0%, #232e41cc 100%);
+    color: #60a5fa;
+    border-right-color: #2563eb;
+    font-weight: 700;
+    box-shadow: 2px 0 16px 0 rgba(37,99,235,0.10);
 }
 
 .nav-link i {
     font-size: 1.125rem;
     width: 20px;
+    color: #60a5fa;
+    filter: drop-shadow(0 1px 2px #232e41cc);
 }
 
 /* Contenido principal */
@@ -159,6 +312,9 @@ body {
     margin-top: 70px;
     padding: 2rem;
     min-height: calc(100vh - 70px);
+    background: rgba(30,41,59,0.18);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px 0 rgba(30,41,59,0.10);
 }
 
 /* Sección KPI */
@@ -173,11 +329,11 @@ body {
 }
 
 .kpi-card {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
+    background: #232e41cc;
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
     transition: var(--transition);
 }
 
@@ -267,11 +423,11 @@ body {
 }
 
 .chart-container {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
+    background: #232e41cc;
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
 }
 
 .chart-header {
@@ -307,10 +463,10 @@ body {
 }
 
 .data-container {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    background: #232e41cc;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
     overflow: hidden;
 }
 
@@ -364,15 +520,17 @@ body {
 }
 
 .data-table th {
-    background: var(--bg-primary);
+    background: #1e293b;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #e0e7ef;
     font-size: 0.875rem;
 }
 
 .data-table td {
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: #e0e7ef;
+    background: #232e41cc;
+    border-bottom: 1px solid #334155;
 }
 
 .status-badge {

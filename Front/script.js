@@ -378,8 +378,6 @@ function initializeCharts() {
     }
 }
 
-// Gráfico de temperatura
-// ...eliminado gráfico de temperatura y humedad...
 
 // Gráfico de estado de dispositivos
 function initializeDevicesChart() {
@@ -505,7 +503,6 @@ function setupEventListeners() {
             refreshBtn.addEventListener('click', refreshData);
         }
         
-        // ...existing code...
         
         // Botón de exportar
         const exportBtn = document.querySelector('.btn-export');
@@ -516,17 +513,15 @@ function setupEventListeners() {
         // Navegación del sidebar
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
+                if (this.getAttribute('href') === 'devices.html') {
+                    window.location.href = 'devices.html';
+                    return;
+                }
                 e.preventDefault();
-                
-                // Remover clase active de todos los elementos
                 document.querySelectorAll('.nav-item').forEach(item => {
                     item.classList.remove('active');
                 });
-                
-                // Agregar clase active al elemento clickeado
                 this.parentElement.classList.add('active');
-                
-                // Navegación
                 const section = this.getAttribute('href').substring(1);
                 console.log(`📍 Navegando a: ${section}`);
             });
@@ -570,7 +565,7 @@ function updateDateTime() {
                 headerControls.appendChild(datetimeElement);
             }
         }
-        datetimeElement.textContent = `${now.toLocaleDateString('es-ES', options)} ${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        datetimeElement.textContent = `${now.toLocaleDateString('es-ES', options)}`;
 
         // Actualizar cada minuto
         setTimeout(updateDateTime, 60000);
@@ -622,8 +617,7 @@ async function refreshData() {
     }
 }
 
-// Actualizar gráfico de temperatura
-// ...eliminado updateTemperatureChart...
+
 
 // Actualizar gráfico de dispositivos
 function updateDevicesChart() {
