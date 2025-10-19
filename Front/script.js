@@ -208,32 +208,128 @@ async function initializeDashboard() {
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
-        // Obtener KPIs y datos generales del dashboard
-        const dashboardResponse = await fetch('http://localhost:3000/api/dashboard');
-        if (!dashboardResponse.ok) throw new Error(`HTTP error! status: ${dashboardResponse.status}`);
-        const dashboardResult = await dashboardResponse.json();
-        if (!dashboardResult.success) throw new Error(dashboardResult.message || 'Error desconocido del servidor');
+        showLoading(true);
+        
+        const response = await fetch('http://localhost:3000/api/devices');
+        console.log('📡 Estado de la respuesta:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
 
-        // Obtener lista de dispositivos directamente del backend
-        const devicesResponse = await fetch('http://localhost:3000/api/devices');
-        if (!devicesResponse.ok) throw new Error(`HTTP error! status: ${devicesResponse.status}`);
-        const devicesResult = await devicesResponse.json();
-        if (!devicesResult.success) throw new Error(devicesResult.message || 'Error desconocido del servidor');
+        const result = await response.json();
+        console.log('📦 Datos recibidos:', result);
 
-        // Unir los datos en currentData
-        currentData = dashboardResult.data || {};
-        currentData.devices = devicesResult.data || [];
+        if (!result.success) {
+            throw new Error(result.message || 'Error en la respuesta del servidor');
+        }
 
+        // Actualizar datos globales
+        currentData = {
+            devices: result.data || [],
+            kpis: {
+                systemStatus: { 
+                    current: result.data.length > 0 ? 'Activo' : 'Sin dispositivos' 
+                },
+                activeDevices: { 
+                    current: result.data.filter(d => d.status === 'online').length 
+                },
+                alerts: { 
+                    current: result.data.filter(d => d.status === 'warning').length 
+                },
+                recentEvents: { 
+                    current: 0  // Update this based on your events logic
+                }
+            }
+        };
+
+        // Actualizar UI
         updateKPIs();
+        updateDevicesChart();
+        populateDevicesTable();
         updateLastUpdate();
+        showLoading(false);
+
     } catch (error) {
-        console.error('❌ Error cargando datos del backend:', error.message);
-        console.log('🔄 Usando datos simulados como fallback...');
-        // Fallback a datos simulados si el backend no está disponible
+        console.error('❌ Error:', error);
+        showLoading(false);
         await loadDataFallback();
     }
 }
 
+// Función para cargar datos de respaldo
+async function loadDataFallback() {
+    console.log('📊 Cargando datos de respaldo...');
+    currentData = {
+        devices: [
+            {
+                id: "DEV001",
+                name: "Sensor Puerta Principal",
+                type: "Contacto",
+                location: "Entrada",
+                status: "online",
+                value: "Cerrado",
+                lastReading: new Date().toLocaleString(),
+                battery: 85,
+                signal: "Buena"
+            },
+            {
+                id: "DEV002",
+                name: "Sensor Ventana Sala",
+                type: "Contacto",
+                location: "Sala",
+                status: "online",
+                value: "Cerrado",
+                lastReading: new Date().toLocaleString(),
+                battery: 90,
+                signal: "Excelente"
+            },
+            {
+                id: "DEV003",
+                name: "Sensor Movimiento",
+                type: "Movimiento",
+                location: "Pasillo",
+                status: "warning",
+                value: "Sin movimiento",
+                lastReading: new Date().toLocaleString(),
+                battery: 15,
+                signal: "Regular"
+            }
+        ],
+        kpis: {
+            systemStatus: { current: 'Activo' },
+            activeDevices: { current: 2 },
+            alerts: { current: 1 },
+            recentEvents: { current: 0 }
+        }
+    };
+
+    // Actualizar UI con datos de respaldo
+    updateKPIs();
+    updateDevicesChart();
+    populateDevicesTable();
+    updateLastUpdate();
+}
+
+function updateKPIs() {
+    const kpis = currentData.kpis;
+    
+    // Helper function to safely update element
+    const updateElement = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        } else {
+            console.warn(`⚠️ Elemento KPI no encontrado: ${id}`);
+        }
+    };
+
+    // Update each KPI safely
+    updateElement('systemStatus', kpis.systemStatus?.current || 'N/A');
+    updateElement('activeDevices', kpis.activeDevices?.current || '0');
+    updateElement('alerts', kpis.alerts?.current || '0');
+    updateElement('recentEvents', kpis.recentEvents?.current || '0');
+}
 
 // Actualizar información de última actualización
 function updateLastUpdate() {
@@ -271,54 +367,6 @@ function updateLastUpdate() {
 // Generar datos históricos de temperatura
 
 // Generar datos de dispositivos
-
-// Actualizar KPIs
-function updateKPIs() {
-    try {
-        // Manejar ambos formatos de datos (backend y fallback)
-        const temp = currentData.kpis.temperature;
-        const humidity = currentData.kpis.humidity;
-        const devices = currentData.kpis.activeDevices;
-        const alerts = currentData.kpis.alerts;
-        
-        // Temperatura
-        const tempValue = typeof temp === 'object' ? temp.current : temp;
-        const tempElement = document.getElementById('temperature');
-        if (tempElement) {
-            tempElement.textContent = `${tempValue.toFixed(1)}°C`;
-        }
-        
-        // Humedad
-        const humidityValue = typeof humidity === 'object' ? humidity.current : humidity;
-        const humidityElement = document.getElementById('humidity');
-        if (humidityElement) {
-            humidityElement.textContent = `${humidityValue.toFixed(0)}%`;
-        }
-        
-        // Dispositivos activos
-        const devicesValue = typeof devices === 'object' ? devices.current : devices;
-        const devicesElement = document.getElementById('activeDevices');
-        if (devicesElement) {
-            devicesElement.textContent = devicesValue;
-        }
-        
-        // Alertas
-        const alertsValue = typeof alerts === 'object' ? alerts.current : alerts;
-        const alertsElement = document.getElementById('alerts');
-        if (alertsElement) {
-            alertsElement.textContent = alertsValue;
-        }
-        
-        console.log('📊 KPIs actualizados:', { 
-            temp: tempValue, 
-            humidity: humidityValue, 
-            devices: devicesValue, 
-            alerts: alertsValue 
-        });
-    } catch (error) {
-        console.error('❌ Error actualizando KPIs:', error);
-    }
-}
 
 // Inicializar gráficos
 function initializeCharts() {

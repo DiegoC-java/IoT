@@ -5,12 +5,12 @@ const { pool, testConnection, healthCheck } = require('./database');
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;
 
-// Middleware
+// Configurar CORS antes de las rutas
 app.use(cors({
-    origin: ['http://localhost:8080', 'http://127.0.0.1:8080', 'file://', '*'],
-    credentials: true
+    origin: '*',  // En producción, cambiar por tu dominio
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
 
 // Middleware para logging
 app.use((req, res, next) => {
