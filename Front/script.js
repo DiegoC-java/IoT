@@ -160,60 +160,32 @@ async function initializeDashboard() {
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
-        
-        const response = await fetch('http://localhost:3000/api/dashboard', {
-            timeout: 5000 // Timeout de 5 segundos
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ Datos cargados desde el backend:', result.message);
-            console.log('📊 Fuente de datos:', result.dataSource || 'backend');
-            currentData = result.data;
-            updateKPIs();
-            updateLastUpdate();
-        } else {
-            throw new Error(result.message || 'Error desconocido del servidor');
-        }
+        // Obtener KPIs y datos generales del dashboard
+        const dashboardResponse = await fetch('http://localhost:3000/api/dashboard');
+        if (!dashboardResponse.ok) throw new Error(`HTTP error! status: ${dashboardResponse.status}`);
+        const dashboardResult = await dashboardResponse.json();
+        if (!dashboardResult.success) throw new Error(dashboardResult.message || 'Error desconocido del servidor');
+
+        // Obtener lista de dispositivos directamente del backend
+        const devicesResponse = await fetch('http://localhost:3000/api/devices');
+        if (!devicesResponse.ok) throw new Error(`HTTP error! status: ${devicesResponse.status}`);
+        const devicesResult = await devicesResponse.json();
+        if (!devicesResult.success) throw new Error(devicesResult.message || 'Error desconocido del servidor');
+
+        // Unir los datos en currentData
+        currentData = dashboardResult.data || {};
+        currentData.devices = devicesResult.data || [];
+
+        updateKPIs();
+        updateLastUpdate();
     } catch (error) {
         console.error('❌ Error cargando datos del backend:', error.message);
         console.log('🔄 Usando datos simulados como fallback...');
-        
         // Fallback a datos simulados si el backend no está disponible
         await loadDataFallback();
     }
 }
 
-// Función fallback con datos simulados
-async function loadDataFallback() {
-    // Simulación de carga de datos
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    currentData = {
-        kpis: {
-            temperature: { current: 23.5 + Math.random() * 5, unit: '°C', trend: 'positive', change: 1.2 },
-            humidity: { current: 65 + Math.random() * 10, unit: '%', trend: 'negative', change: -2.1 },
-            activeDevices: { current: 12 + Math.floor(Math.random() * 3), total: 15, trend: 'positive', change: 3 },
-            alerts: { current: Math.floor(Math.random() * 5), critical: 0, warning: 2, trend: 'neutral' }
-        },
-        temperatureHistory: generateTemperatureHistory(),
-        devices: generateDevicesData(),
-        deviceStatus: {
-            online: 8,
-            offline: 2,
-            warning: 2
-        }
-    };
-    
-    updateKPIs();
-    updateLastUpdate();
-    console.log('📊 Datos simulados cargados');
-}
 
 // Actualizar información de última actualización
 function updateLastUpdate() {
@@ -249,57 +221,8 @@ function updateLastUpdate() {
 }
 
 // Generar datos históricos de temperatura
-function generateTemperatureHistory() {
-    const history = [];
-    const now = new Date();
-    
-    for (let i = 23; i >= 0; i--) {
-        const time = new Date(now.getTime() - i * 60 * 60 * 1000);
-        const baseTemp = 23;
-        const variation = Math.sin(i * 0.5) * 3 + Math.random() * 2;
-        
-        history.push({
-            time: time.toISOString(),
-            temperature: Math.round((baseTemp + variation) * 10) / 10,
-            humidity: Math.round((65 + Math.sin(i * 0.3) * 10 + Math.random() * 5) * 10) / 10
-        });
-    }
-    
-    return history;
-}
 
 // Generar datos de dispositivos
-function generateDevicesData() {
-    const deviceTypes = ['Sensor Temperatura', 'Sensor Humedad', 'Cámara', 'Actuador', 'Gateway'];
-    const locations = ['Jardín', 'Cocina', 'Sala', 'Dormitorio', 'Garage', 'Terraza'];
-    const statuses = ['online', 'offline', 'warning'];
-    const devices = [];
-    
-    for (let i = 1; i <= 12; i++) {
-        const type = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
-        const location = locations[Math.floor(Math.random() * locations.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        
-        const device = {
-            id: `DEV-${i.toString().padStart(3, '0')}`,
-            name: `${type} ${location}`,
-            type: type,
-            location: location,
-            status: status,
-            lastReading: new Date(Date.now() - Math.random() * 3600000).toLocaleString('es-ES'),
-            value: type.includes('Temperatura') ? (20 + Math.random() * 15).toFixed(1) :
-                   type.includes('Humedad') ? (50 + Math.random() * 30).toFixed(0) :
-                   (Math.random() * 100).toFixed(1),
-            unit: type.includes('Temperatura') ? '°C' :
-                  type.includes('Humedad') ? '%' : '',
-            battery: Math.floor(20 + Math.random() * 80),
-            signal: ['excelente', 'buena', 'regular'][Math.floor(Math.random() * 3)]
-        };
-        devices.push(device);
-    }
-    
-    return devices;
-}
 
 // Actualizar KPIs
 function updateKPIs() {
