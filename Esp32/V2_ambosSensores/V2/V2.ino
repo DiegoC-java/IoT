@@ -11,7 +11,7 @@ Adafruit_MPU6050 mpu;
 
 // --- CONFIGURACIÓN DE RED ---
 const char* ssid = "Altro52.4G";
-const char* password = "*****";
+const char* password = "victor19";
 
 // --- CONFIGURACIÓN DE HORA (NTP) ---
 const char* ntpServer = "pool.ntp.org";
