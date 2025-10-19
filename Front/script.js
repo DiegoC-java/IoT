@@ -1,5 +1,6 @@
 // Variables globales
 // ...existing code...
+
 let devicesChart;
 let currentData = {};
 

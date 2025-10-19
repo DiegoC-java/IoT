@@ -182,10 +182,9 @@ router.post('/auth/logout', (req, res) => {
 // POST - Registro de nuevo usuario (auto-hash)
 router.post('/auth/register', async (req, res) => {
     try {
+        const startRegister = Date.now();
         console.log('📝 Solicitud de registro recibida');
-        
         const { username, password, email, role = 'user' } = req.body;
-        
         // Validaciones básicas
         if (!username || !password || !email) {
             return res.status(400).json({
@@ -193,21 +192,18 @@ router.post('/auth/register', async (req, res) => {
                 message: 'Usuario, contraseña y email son requeridos'
             });
         }
-        
         if (username.length < 3) {
             return res.status(400).json({
                 success: false,
                 message: 'El usuario debe tener al menos 3 caracteres'
             });
         }
-        
         if (password.length < 6) {
             return res.status(400).json({
                 success: false,
                 message: 'La contraseña debe tener al menos 6 caracteres'
             });
         }
-        
         // Validar email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -216,35 +212,35 @@ router.post('/auth/register', async (req, res) => {
                 message: 'Email inválido'
             });
         }
-        
         if (!db || !db.isAvailable || !db.pool) {
             return res.status(503).json({
                 success: false,
                 message: 'Base de datos no disponible. No se pueden registrar usuarios.'
             });
         }
-        
         // Verificar si el usuario ya existe
         const existingUser = await db.pool.query(
             'SELECT username FROM users WHERE username = $1 OR email = $2',
             [username, email]
         );
-        
         if (existingUser.rows.length > 0) {
             return res.status(409).json({
                 success: false,
                 message: 'El usuario o email ya existe'
             });
         }
-        
         // 🔐 AUTO-HASH de la contraseña
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         console.log('🔒 Contraseña hasheada automáticamente');
+    // Medir tiempo hasta aquí (registro)
+    const registerTimeMs = Date.now() - startRegister;
+    console.log(`⏱️ Tiempo de registro (sin correo): ${registerTimeMs} ms (${(registerTimeMs/1000).toFixed(3)} s)`);
         // Generar código MFA y enviar email
         const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
         mfaCodes[email] = { code: mfaCode, expiresAt, username, hashedPassword, role };
+        const startMail = Date.now();
         try {
             await transporter.sendMail({
                 from: 'IoT Dashboard <admin@iot.local>',
@@ -252,7 +248,17 @@ router.post('/auth/register', async (req, res) => {
                 subject: 'Tu código de verificación IoT',
                 text: `Tu código de verificación es: ${mfaCode}\nEste código expira en 5 minutos.`
             });
-            console.log(`� Código MFA enviado a ${email}: ${mfaCode}`);
+            const mailTimeMs = Date.now() - startMail;
+            console.log(`📧 Código MFA enviado a ${email}: ${mfaCode}`);
+            console.log(`⏱️ Tiempo en enviar correo: ${mailTimeMs} ms (${(mailTimeMs/1000).toFixed(3)} s)`);
+            res.status(201).json({
+                success: true,
+                message: 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.',
+                mfaRequired: true,
+                email,
+                registerTimeMs,
+                mailTimeMs
+            });
         } catch (mailErr) {
             console.error('❌ Error enviando email MFA:', mailErr);
             return res.status(500).json({
@@ -260,12 +266,6 @@ router.post('/auth/register', async (req, res) => {
                 message: 'No se pudo enviar el código de verificación al correo.'
             });
         }
-        res.status(201).json({
-            success: true,
-            message: 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.',
-            mfaRequired: true,
-            email
-        });
 // Endpoint para validar código MFA y activar usuario
 router.post('/auth/verify-mfa-register', async (req, res) => {
     const { email, code } = req.body;

@@ -25,7 +25,11 @@ document.getElementById('registerForm').addEventListener('submit', async functio
             // Mostrar campo MFA y botón de verificación
             document.getElementById('mfaGroup').style.display = 'block';
             registerBtn.style.display = 'none';
-            alertMsg.textContent = 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.';
+            let extra = '';
+            if (data.registerTimeMs !== undefined && data.mailTimeMs !== undefined) {
+                extra = `\nTiempo de registro: ${data.registerTimeMs} ms\nTiempo en enviar correo: ${data.mailTimeMs} ms`;
+            }
+            alertMsg.textContent = 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.' + extra;
             alertBox.classList.remove('alert-error');
             alertBox.classList.add('alert-success');
             alertBox.style.display = 'block';
