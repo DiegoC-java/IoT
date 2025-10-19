@@ -160,26 +160,24 @@ async function initializeDashboard() {
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
-        
-        const response = await fetch('http://localhost:3000/api/dashboard', {
-            timeout: 5000 // Timeout de 5 segundos
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ Datos cargados desde el backend:', result.message);
-            console.log('📊 Fuente de datos:', result.dataSource || 'backend');
-            currentData = result.data;
-            updateKPIs();
-            updateLastUpdate();
-        } else {
-            throw new Error(result.message || 'Error desconocido del servidor');
-        }
+        // Obtener KPIs y datos generales del dashboard
+        const dashboardResponse = await fetch('http://localhost:3000/api/dashboard');
+        if (!dashboardResponse.ok) throw new Error(`HTTP error! status: ${dashboardResponse.status}`);
+        const dashboardResult = await dashboardResponse.json();
+        if (!dashboardResult.success) throw new Error(dashboardResult.message || 'Error desconocido del servidor');
+
+        // Obtener lista de dispositivos directamente del backend
+        const devicesResponse = await fetch('http://localhost:3000/api/devices');
+        if (!devicesResponse.ok) throw new Error(`HTTP error! status: ${devicesResponse.status}`);
+        const devicesResult = await devicesResponse.json();
+        if (!devicesResult.success) throw new Error(devicesResult.message || 'Error desconocido del servidor');
+
+        // Unir los datos en currentData
+        currentData = dashboardResult.data || {};
+        currentData.devices = devicesResult.data || [];
+
+        updateKPIs();
+        updateLastUpdate();
     } catch (error) {
         console.error('❌ Error cargando datos del backend:', error.message);
         console.log('🔄 Usando datos simulados como fallback...');
