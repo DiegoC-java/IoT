@@ -18,6 +18,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// Middleware para parsear JSON y URL-encoded
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Ruta de prueba
 app.get('/api/health', async (req, res) => {
     try {
