@@ -1,5 +1,5 @@
 // Variables globales
-let temperatureChart;
+// ...existing code...
 let devicesChart;
 let currentData = {};
 
@@ -371,7 +371,6 @@ function updateLastUpdate() {
 // Inicializar gráficos
 function initializeCharts() {
     try {
-        initializeTemperatureChart();
         initializeDevicesChart();
         console.log('📈 Gráficos inicializados');
     } catch (error) {
@@ -380,97 +379,7 @@ function initializeCharts() {
 }
 
 // Gráfico de temperatura
-function initializeTemperatureChart() {
-    const ctx = document.getElementById('temperatureChart');
-    if (!ctx) {
-        console.warn('⚠️ Elemento temperatureChart no encontrado');
-        return;
-    }
-    
-    const chartCtx = ctx.getContext('2d');
-    
-    const labels = currentData.temperatureHistory.map(item => {
-        return new Date(item.time).toLocaleTimeString('es-ES', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    });
-    
-    const temperatures = currentData.temperatureHistory.map(item => item.temperature);
-    const humidities = currentData.temperatureHistory.map(item => item.humidity);
-    
-    temperatureChart = new Chart(chartCtx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Temperatura (°C)',
-                data: temperatures,
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.4,
-                fill: true,
-                yAxisID: 'y'
-            }, {
-                label: 'Humedad (%)',
-                data: humidities,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4,
-                fill: true,
-                yAxisID: 'y1'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    title: {
-                        display: true,
-                        text: 'Hora'
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Temperatura (°C)'
-                    },
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Humedad (%)'
-                    },
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
-}
+// ...eliminado gráfico de temperatura y humedad...
 
 // Gráfico de estado de dispositivos
 function initializeDevicesChart() {
@@ -596,13 +505,7 @@ function setupEventListeners() {
             refreshBtn.addEventListener('click', refreshData);
         }
         
-        // Selector de rango de tiempo
-        const timeRangeSelect = document.getElementById('temperatureTimeRange');
-        if (timeRangeSelect) {
-            timeRangeSelect.addEventListener('change', function(e) {
-                updateTemperatureChart(e.target.value);
-            });
-        }
+        // ...existing code...
         
         // Botón de exportar
         const exportBtn = document.querySelector('.btn-export');
@@ -702,14 +605,11 @@ async function refreshData() {
         console.log('🔄 Refrescando datos...');
         await loadData();
         
-        // Actualizar gráficos
-        updateTemperatureChart();
-        updateDevicesChart();
-        
-        // Actualizar tabla
-        populateDevicesTable();
-        
-        console.log('✅ Datos refrescados exitosamente');
+    // Actualizar gráfico de dispositivos
+    updateDevicesChart();
+    // Actualizar tabla
+    populateDevicesTable();
+    console.log('✅ Datos refrescados exitosamente');
     } catch (error) {
         console.error('❌ Error refrescando datos:', error);
     } finally {
@@ -723,30 +623,7 @@ async function refreshData() {
 }
 
 // Actualizar gráfico de temperatura
-function updateTemperatureChart(timeRange = '24h') {
-    if (!temperatureChart) return;
-    
-    try {
-        // Filtrar datos según el rango de tiempo (implementación futura)
-        const filteredData = currentData.temperatureHistory;
-        
-        const labels = filteredData.map(item => {
-            return new Date(item.time).toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        });
-        
-        temperatureChart.data.labels = labels;
-        temperatureChart.data.datasets[0].data = filteredData.map(item => item.temperature);
-        temperatureChart.data.datasets[1].data = filteredData.map(item => item.humidity);
-        temperatureChart.update();
-        
-        console.log('📈 Gráfico de temperatura actualizado');
-    } catch (error) {
-        console.error('❌ Error actualizando gráfico de temperatura:', error);
-    }
-}
+// ...eliminado updateTemperatureChart...
 
 // Actualizar gráfico de dispositivos
 function updateDevicesChart() {
@@ -983,40 +860,7 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // Función para simular datos en tiempo real (opcional)
-function startRealTimeSimulation() {
-    setInterval(() => {
-        try {
-            // Actualizar KPIs con pequeñas variaciones
-            if (currentData.kpis.temperature.current) {
-                currentData.kpis.temperature.current += (Math.random() - 0.5) * 0.5;
-                currentData.kpis.humidity.current += (Math.random() - 0.5) * 2;
-                
-                // Mantener valores en rangos realistas
-                currentData.kpis.temperature.current = Math.max(15, Math.min(35, currentData.kpis.temperature.current));
-                currentData.kpis.humidity.current = Math.max(30, Math.min(90, currentData.kpis.humidity.current));
-                
-                updateKPIs();
-                
-                // Agregar nuevo punto al historial
-                const now = new Date();
-                currentData.temperatureHistory.push({
-                    time: now.toISOString(),
-                    temperature: currentData.kpis.temperature.current,
-                    humidity: currentData.kpis.humidity.current
-                });
-                
-                // Mantener solo las últimas 24 horas
-                if (currentData.temperatureHistory.length > 24) {
-                    currentData.temperatureHistory.shift();
-                }
-                
-                updateTemperatureChart();
-            }
-        } catch (error) {
-            console.error('❌ Error en simulación tiempo real:', error);
-        }
-    }, 60000); // Actualizar cada minuto
-}
+// ...eliminada simulación de temperatura y humedad...
 
 // Iniciar simulación en tiempo real (descomenta si quieres datos que cambien automáticamente)
 //startRealTimeSimulation();
