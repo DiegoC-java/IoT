@@ -3,6 +3,8 @@
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 // --- Instancia del sensor MPU6050 ---
 Adafruit_MPU6050 mpu;
@@ -21,6 +23,36 @@ const int ledRojoPin = 19;      // LED para Movimiento (PIR)
 const int ledVibracionPin = 18; // LED para Vibración (MPU-6050)
 const int sensorPirPin = 23;
 const int buzzerPin = 13;
+
+// --- URL del backend (ajusta la IP a la de tu PC) ---
+const char* backendUrl = "http://192.168.1.100:3000/api/devices/motion"; // Cambia la IP por la de tu PC
+
+// --- Función para enviar evento al backend ---
+void sendEventToBackend(const char* eventType, const char* sensorType, int sensorValue) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(backendUrl);
+    http.addHeader("Content-Type", "application/json");
+
+    StaticJsonDocument<256> doc;
+    doc["device_id"] = "ESP32_ALARM_01";
+    doc["event_type"] = eventType;
+    doc["sensor_type"] = sensorType;
+    doc["timestamp"] = getFormattedTime();
+    doc["sensor_value"] = sensorValue;
+
+    String requestBody;
+    serializeJson(doc, requestBody);
+
+    int httpResponseCode = http.POST(requestBody);
+    Serial.print("POST /api/devices/motion -> ");
+    Serial.println(httpResponseCode);
+
+    http.end();
+  } else {
+    Serial.println("WiFi no conectado, no se pudo enviar evento.");
+  }
+}
 
 // --- Parámetros de Sensores y Alarma ---
 #define VIBRATION_THRESHOLD 12
@@ -121,8 +153,15 @@ void loop() {
 
         Serial.print("[" + getFormattedTime() + "] ");
         Serial.print("¡ALARMA ACTIVADA! Motivo: ");
+
+        // Enviar evento al backend
+        if (triggerByMotionNow) {
+          sendEventToBackend("motion_detected", "PIR", 1);
+        }
+        if (triggerByVibrationNow) {
+          sendEventToBackend("vibration_detected", "MPU6050", (int)totalAccel);
+        }
       }
-      
       // "Memoriza" la causa del disparo. Si una causa ya estaba, añade la nueva.
       if (triggerByMotionNow) { 
         if (!alarmTriggeredByMotion) { Serial.print("Movimiento. "); }
