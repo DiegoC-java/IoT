@@ -138,10 +138,23 @@ async function handleLogin(e) {
     
     try {
         console.log('🔐 Intentando autenticación...');
-        
         // Intentar autenticación con el backend primero
         const backendAuth = await authenticateWithBackend(username, password);
-        
+        if (backendAuth.mfaRequired) {
+            // Mostrar campo MFA y guardar email
+            showAlert('Se envió un código de autenticación a tu correo', 'info');
+            document.getElementById('mfaGroup').style.display = 'block';
+            window.mfaEmail = backendAuth.email;
+            // Cambiar el botón para MFA
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.textContent = 'Validar código';
+            loginBtn.onclick = async function(ev) {
+                ev.preventDefault();
+                await handleMfaLogin();
+            };
+            setLoadingState(false);
+            return;
+        }
         if (backendAuth.success) {
             console.log('✅ Autenticación exitosa con backend');
             await handleSuccessfulLogin(backendAuth.user, rememberMe);
@@ -149,7 +162,6 @@ async function handleLogin(e) {
             console.log('⚠️ Backend falló, intentando autenticación local...');
             // Fallback a autenticación local
             const localAuth = authenticateLocally(username, password);
-            
             if (localAuth.success) {
                 console.log('✅ Autenticación exitosa local');
                 await handleSuccessfulLogin(localAuth.user, rememberMe);
@@ -158,11 +170,9 @@ async function handleLogin(e) {
                 shakeLoginCard();
             }
         }
-        
     } catch (error) {
         console.error('❌ Error en login:', error);
         showAlert('Error de conexión. Usando autenticación local.', 'error');
-        
         // Fallback a autenticación local
         const localAuth = authenticateLocally(username, password);
         if (localAuth.success) {
@@ -180,7 +190,6 @@ async function handleLogin(e) {
 async function authenticateWithBackend(username, password) {
     try {
         console.log('🌐 Conectando con backend...');
-        
         const response = await fetch('http://localhost:3000/api/auth/login', {
             method: 'POST',
             headers: {
@@ -189,11 +198,10 @@ async function authenticateWithBackend(username, password) {
             body: JSON.stringify({ username, password }),
             timeout: 5000
         });
-        
         if (response.ok) {
             const result = await response.json();
             console.log('📡 Respuesta del backend:', result);
-            
+            // Si el backend envía mfaRequired, ignorar y mostrar error en el flujo principal
             if (result.success) {
                 return {
                     success: true,
@@ -205,14 +213,14 @@ async function authenticateWithBackend(username, password) {
                 };
             }
         }
-        
         console.log('❌ Backend retornó error');
         return { success: false };
-        
     } catch (error) {
         console.log('❌ Error conectando con backend:', error.message);
         return { success: false };
     }
+// Manejar login MFA
+// Eliminado: El login no requiere MFA
 }
 
 // Autenticación local (fallback)

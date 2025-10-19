@@ -13,7 +13,84 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         return;
     }
 
-    document.getElementById('registerBtn').disabled = true;
+        document.getElementById('registerBtn').disabled = true;
+        try {
+            const res = await fetch('http://localhost:3000/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+            const data = await res.json();
+            if (res.ok && data.mfaRequired) {
+                // Mostrar campo MFA y botón de verificación
+                document.getElementById('mfaGroup').style.display = 'block';
+                document.getElementById('registerBtn').style.display = 'none';
+                alertMsg.textContent = 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.';
+                alertBox.classList.remove('alert-error');
+                alertBox.classList.add('alert-success');
+                alertBox.style.display = 'block';
+                // Guardar email para verificación
+                window._registerEmail = email;
+            } else if (res.ok && data.success) {
+                alertMsg.textContent = '¡Registro exitoso! Ahora puedes iniciar sesión.';
+                alertBox.classList.remove('alert-error');
+                alertBox.classList.add('alert-success');
+                alertBox.style.display = 'block';
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            } else {
+                alertMsg.textContent = data.message || 'Error al registrar.';
+                alertBox.classList.remove('alert-success');
+                alertBox.classList.add('alert-error');
+                alertBox.style.display = 'block';
+            }
+        } catch (err) {
+            alertMsg.textContent = 'Error de conexión con el servidor.';
+            alertBox.classList.remove('alert-success');
+            alertBox.classList.add('alert-error');
+            alertBox.style.display = 'block';
+        }
+        document.getElementById('registerBtn').disabled = false;
+// Verificar código MFA y activar usuario
+document.getElementById('verifyMfaBtn').addEventListener('click', async function() {
+    const mfaCode = document.getElementById('mfaCode').value.trim();
+    const email = window._registerEmail;
+    const alertBox = document.getElementById('alert');
+    const alertMsg = alertBox.querySelector('.alert-message');
+    if (!mfaCode || !email) {
+        alertMsg.textContent = 'Debes ingresar el código enviado al correo.';
+        alertBox.classList.remove('alert-success');
+        alertBox.classList.add('alert-error');
+        alertBox.style.display = 'block';
+        return;
+    }
+    this.disabled = true;
+    try {
+        const res = await fetch('http://localhost:3000/api/auth/verify-mfa-register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code: mfaCode })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+            alertMsg.textContent = '¡Usuario activado exitosamente! Ahora puedes iniciar sesión.';
+            alertBox.classList.remove('alert-error');
+            alertBox.classList.add('alert-success');
+            alertBox.style.display = 'block';
+            setTimeout(() => window.location.href = 'login.html', 2000);
+        } else {
+            alertMsg.textContent = data.message || 'Error al activar usuario.';
+            alertBox.classList.remove('alert-success');
+            alertBox.classList.add('alert-error');
+            alertBox.style.display = 'block';
+        }
+    } catch (err) {
+        alertMsg.textContent = 'Error de conexión con el servidor.';
+        alertBox.classList.remove('alert-success');
+        alertBox.classList.add('alert-error');
+        alertBox.style.display = 'block';
+    }
+    this.disabled = false;
+});
     try {
         const res = await fetch('http://localhost:3000/api/auth/register', {
             method: 'POST',

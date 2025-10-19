@@ -1,3 +1,16 @@
+const nodemailer = require('nodemailer');
+
+// Almacén temporal de códigos MFA (demo, en memoria)
+const mfaCodes = {};
+
+// Configuración de nodemailer (puedes ajustar según tu proveedor)
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // Cambia si usas otro proveedor
+    auth: {
+        user: process.env.PGADMIN_EMAIL || 'admin@iot.local',
+        pass: process.env.PGADMIN_PASSWORD || 'admin123'
+    }
+});
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
@@ -15,14 +28,17 @@ try {
 
 // POST - Login
 router.post('/auth/login', async (req, res) => {
+    const start = Date.now();
     try {
-        console.log('🔐 Intento de login recibido');
-        
         const { username, password } = req.body;
+        console.log('🔐 Intento de login recibido:', username);
+        
         
         // Validaciones básicas
         if (!username || !password) {
             console.log('❌ Credenciales faltantes');
+            const duration = Date.now() - start;
+            console.log(`⏱️ Tiempo de login para ${username || 'N/A'}: ${duration} ms`);
             return res.status(400).json({
                 success: false,
                 message: 'Usuario y contraseña son requeridos'
@@ -30,6 +46,8 @@ router.post('/auth/login', async (req, res) => {
         }
         
         if (username.length < 3) {
+            const duration = Date.now() - start;
+            console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
             return res.status(400).json({
                 success: false,
                 message: 'El usuario debe tener al menos 3 caracteres'
@@ -37,6 +55,8 @@ router.post('/auth/login', async (req, res) => {
         }
         
         if (password.length < 6) {
+            const duration = Date.now() - start;
+            console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
             return res.status(400).json({
                 success: false,
                 message: 'La contraseña debe tener al menos 6 caracteres'
@@ -72,7 +92,9 @@ router.post('/auth/login', async (req, res) => {
         }
         if (user) {
             await logLoginAttempt(username, true, req.ip);
-            res.json({
+            const duration = Date.now() - start;
+            console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
+            return res.json({
                 success: true,
                 message: 'Login exitoso',
                 user: {
@@ -86,11 +108,34 @@ router.post('/auth/login', async (req, res) => {
         } else {
             console.log('❌ Credenciales inválidas para:', username);
             await logLoginAttempt(username, false, req.ip);
+            const duration = Date.now() - start;
+            console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
             res.status(401).json({
                 success: false,
                 message: 'Credenciales inválidas'
             });
         }
+// Endpoint para validar código MFA
+router.post('/auth/verify-mfa', async (req, res) => {
+    const { email, code } = req.body;
+    if (!email || !code) {
+        return res.status(400).json({ success: false, message: 'Email y código son requeridos.' });
+    }
+    const mfa = mfaCodes[email];
+    if (!mfa) {
+        return res.status(400).json({ success: false, message: 'No se solicitó autenticación para este correo.' });
+    }
+    if (Date.now() > mfa.expiresAt) {
+        delete mfaCodes[email];
+        return res.status(400).json({ success: false, message: 'El código ha expirado. Solicita uno nuevo.' });
+    }
+    if (code !== mfa.code) {
+        return res.status(401).json({ success: false, message: 'Código incorrecto.' });
+    }
+    // MFA correcto, eliminar código y permitir acceso
+    delete mfaCodes[email];
+    return res.json({ success: true, message: 'Autenticación completada.' });
+});
         
     } catch (error) {
         console.error('❌ Error en endpoint de login:', error);
@@ -195,22 +240,61 @@ router.post('/auth/register', async (req, res) => {
         // 🔐 AUTO-HASH de la contraseña
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
-        
         console.log('🔒 Contraseña hasheada automáticamente');
-        
-        // Insertar usuario en la base de datos
+        // Generar código MFA y enviar email
+        const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
+        mfaCodes[email] = { code: mfaCode, expiresAt, username, hashedPassword, role };
+        try {
+            await transporter.sendMail({
+                from: 'IoT Dashboard <admin@iot.local>',
+                to: email,
+                subject: 'Tu código de verificación IoT',
+                text: `Tu código de verificación es: ${mfaCode}\nEste código expira en 5 minutos.`
+            });
+            console.log(`� Código MFA enviado a ${email}: ${mfaCode}`);
+        } catch (mailErr) {
+            console.error('❌ Error enviando email MFA:', mailErr);
+            return res.status(500).json({
+                success: false,
+                message: 'No se pudo enviar el código de verificación al correo.'
+            });
+        }
+        res.status(201).json({
+            success: true,
+            message: 'Se envió un código de verificación al correo. Ingresa el código para activar tu cuenta.',
+            mfaRequired: true,
+            email
+        });
+// Endpoint para validar código MFA y activar usuario
+router.post('/auth/verify-mfa-register', async (req, res) => {
+    const { email, code } = req.body;
+    if (!email || !code) {
+        return res.status(400).json({ success: false, message: 'Email y código son requeridos.' });
+    }
+    const mfa = mfaCodes[email];
+    if (!mfa) {
+        return res.status(400).json({ success: false, message: 'No se solicitó verificación para este correo.' });
+    }
+    if (Date.now() > mfa.expiresAt) {
+        delete mfaCodes[email];
+        return res.status(400).json({ success: false, message: 'El código ha expirado. Regístrate de nuevo.' });
+    }
+    if (code !== mfa.code) {
+        return res.status(401).json({ success: false, message: 'Código incorrecto.' });
+    }
+    // Insertar usuario en la base de datos
+    try {
         const result = await db.pool.query(
             `INSERT INTO users (username, password, email, role, active, created_at)
              VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
              RETURNING id, username, email, role, created_at`,
-            [username, hashedPassword, email, role]
+            [mfa.username, mfa.hashedPassword, email, mfa.role]
         );
-        
-        console.log(`✅ Usuario registrado: ${username}`);
-        
-        res.status(201).json({
+        delete mfaCodes[email];
+        return res.json({
             success: true,
-            message: 'Usuario registrado exitosamente',
+            message: 'Usuario activado exitosamente',
             user: {
                 id: result.rows[0].id,
                 username: result.rows[0].username,
@@ -219,6 +303,10 @@ router.post('/auth/register', async (req, res) => {
                 created_at: result.rows[0].created_at
             }
         });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: 'Error al activar el usuario.' });
+    }
+});
         
     } catch (error) {
         console.error('❌ Error en registro:', error);
