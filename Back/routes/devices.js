@@ -130,4 +130,36 @@ router.get('/devices/:id', async (req, res) => {
     }
 });
 
+// POST - Recibir eventos de sensores
+router.post('/events', async (req, res) => {
+    try {
+        console.log('📥 Evento recibido:', req.body);
+        const { device_id, event_type, sensor_type, sensor_value, timestamp } = req.body;
+
+        // Insertar evento
+        const result = await pool.query(
+            'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [device_id, event_type, sensor_type, sensor_value, timestamp]
+        );
+
+        // Actualizar estado del dispositivo
+        await pool.query(
+            'UPDATE devices SET status = $1, last_seen = $2 WHERE id = $3',
+            ['online', new Date(), device_id]
+        );
+
+        res.json({
+            success: true,
+            message: 'Evento registrado',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error guardando evento:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;
