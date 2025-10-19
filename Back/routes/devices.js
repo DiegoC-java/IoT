@@ -67,8 +67,7 @@ router.get('/devices', async (req, res) => {
             try {
                 const result = await db.pool.query(`
                     SELECT 
-                        id, name, type, location, status, last_reading, 
-                        value, unit, battery, signal, created_at, updated_at
+                        id, name, location, device_type, status, last_seen, firmware_version, ip_address, created_at, updated_at
                     FROM devices 
                     ORDER BY created_at DESC
                 `);
@@ -76,13 +75,11 @@ router.get('/devices', async (req, res) => {
                 dataSource = 'database';
                 console.log(`🔧 Dispositivos obtenidos de BD: ${devices.length}`);
             } catch (dbError) {
-                console.log('⚠️  Error BD en devices, usando datos simulados:', dbError.message);
-                devices = simulatedDevices;
-                dataSource = 'simulated_fallback';
+                console.log('⚠️  Error BD en devices:', dbError.message);
+                return res.status(500).json({ success: false, message: 'Error al consultar la base de datos', error: dbError.message });
             }
         } else {
-            console.log('🔧 Usando datos simulados para devices (BD no disponible)');
-            devices = simulatedDevices;
+            return res.status(500).json({ success: false, message: 'Base de datos no disponible' });
         }
         
         res.json({

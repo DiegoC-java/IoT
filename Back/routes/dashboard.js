@@ -62,15 +62,13 @@ const generateSimulatedData = () => {
 router.get('/dashboard', async (req, res) => {
     try {
         let devices = [];
-        let dataSource = 'simulated';
-        
+        let dataSource = 'database';
         // Intentar obtener datos de la BD si está disponible
         if (db && db.isAvailable && db.pool) {
             try {
                 const devicesResult = await db.pool.query(`
                     SELECT 
-                        id, name, type, location, status, last_reading, 
-                        value, unit, battery, signal, created_at, updated_at
+                        id, name, location, device_type, status, last_seen, firmware_version, ip_address, value, unit, battery, signal, created_at, updated_at
                     FROM devices 
                     ORDER BY created_at DESC
                 `);
@@ -78,13 +76,11 @@ router.get('/dashboard', async (req, res) => {
                 dataSource = 'database';
                 console.log(`📊 Datos obtenidos de BD: ${devices.length} dispositivos`);
             } catch (dbError) {
-                console.log('⚠️  Error BD, usando datos simulados:', dbError.message);
-                devices = generateSimulatedData();
-                dataSource = 'simulated_fallback';
+                console.log('⚠️  Error BD:', dbError.message);
+                return res.status(500).json({ success: false, message: 'Error al consultar la base de datos', error: dbError.message });
             }
         } else {
-            console.log('📊 Usando datos simulados (BD no disponible)');
-            devices = generateSimulatedData();
+            return res.status(500).json({ success: false, message: 'Base de datos no disponible' });
         }
         
         // Procesar datos (resto del código existente)
@@ -92,13 +88,13 @@ router.get('/dashboard', async (req, res) => {
         const activeDevices = devices.filter(d => d.status === 'online').length;
         const warningDevices = devices.filter(d => d.status === 'warning').length;
         const offlineDevices = devices.filter(d => d.status === 'offline').length;
-        
+
         const temperatureDevices = devices.filter(d => d.unit === '°C' && d.value !== null);
         const avgTemperature = temperatureDevices.length > 0 
             ? temperatureDevices.reduce((sum, d) => sum + parseFloat(d.value), 0) / temperatureDevices.length 
             : 23.5;
-            
-        const humidityDevices = devices.filter(d => d.unit === '%' && d.type.toLowerCase().includes('humedad') && d.value !== null);
+
+        const humidityDevices = devices.filter(d => d.unit === '%' && d.device_type && d.device_type.toLowerCase().includes('humedad') && d.value !== null);
         const avgHumidity = humidityDevices.length > 0 
             ? humidityDevices.reduce((sum, d) => sum + parseFloat(d.value), 0) / humidityDevices.length 
             : 65.0;
@@ -155,14 +151,18 @@ router.get('/dashboard', async (req, res) => {
             devices: devices.map(device => ({
                 id: device.id,
                 name: device.name,
-                type: device.type,
+                device_type: device.device_type,
                 location: device.location,
                 status: device.status,
-                lastReading: device.last_reading ? new Date(device.last_reading).toLocaleString('es-ES') : 'Nunca',
+                lastReading: device.last_seen ? new Date(device.last_seen).toLocaleString('es-ES') : 'Nunca',
+                firmware_version: device.firmware_version,
+                ip_address: device.ip_address,
                 value: device.value || 0,
                 unit: device.unit || '',
                 battery: device.battery,
-                signal: device.signal || 'desconocido'
+                signal: device.signal || 'desconocido',
+                created_at: device.created_at,
+                updated_at: device.updated_at
             })),
             temperatureHistory: generateTemperatureHistory(),
             settings: {

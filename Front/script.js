@@ -53,47 +53,92 @@ function checkAuthentication() {
 // Mostrar información del usuario
 function showUserInfo(userData) {
     const headerControls = document.querySelector('.header-controls');
-    if (headerControls && !document.getElementById('userInfo')) {
-        const userInfo = document.createElement('div');
-        userInfo.id = 'userInfo';
-        userInfo.innerHTML = `
-            <div class="user-info" style="
-                display: flex; 
-                align-items: center; 
-                gap: 1rem; 
-                margin-right: 1rem;
-                padding: 0.5rem 1rem;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-                <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                    <span style="color: var(--text-primary); font-size: 0.875rem; font-weight: 600;">
-                        <i class="fas fa-user"></i> ${userData.username}
-                    </span>
-                    <span style="color: var(--text-secondary); font-size: 0.75rem;">
-                        ${userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'Usuario'}
-                    </span>
-                </div>
-                <button onclick="logout()" class="btn-logout" style="
-                    padding: 0.5rem 1rem; 
-                    background: var(--danger-color); 
-                    color: white; 
-                    border: none; 
-                    border-radius: 6px; 
-                    cursor: pointer; 
-                    font-size: 0.875rem;
-                    transition: var(--transition);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='var(--danger-color)'">
-                    <i class="fas fa-sign-out-alt"></i> Salir
-                </button>
-            </div>
+    if (headerControls) {
+        headerControls.innerHTML = '';
+
+        // Botón Salir
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'btn-logout';
+        logoutBtn.style.cssText = `
+            padding: 0.5rem 1rem;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         `;
-        headerControls.insertBefore(userInfo, headerControls.firstChild);
+        logoutBtn.innerHTML = `<i class="fas fa-sign-out-alt"></i> Salir`;
+        logoutBtn.onclick = logout;
+
+        // Fecha y hora actual
+        let datetimeElement = document.getElementById('datetime');
+        if (!datetimeElement) {
+            datetimeElement = document.createElement('small');
+            datetimeElement.id = 'datetime';
+            datetimeElement.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-right: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+        }
+
+        // Botón Actualizar
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshBtn';
+        refreshBtn.className = 'btn-refresh';
+        refreshBtn.style.cssText = `
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        `;
+        refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Actualizar`;
+        refreshBtn.addEventListener('click', refreshData);
+
+        // Indicador de última actualización
+        let updateIndicator = document.getElementById('lastUpdate');
+        if (!updateIndicator) {
+            updateIndicator = document.createElement('small');
+            updateIndicator.id = 'lastUpdate';
+            updateIndicator.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-right: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+        }
+
+        // Estructura: [SALIR] [fecha/hora actual] [ACTUALIZAR] [última actualización]
+        const headerRow = document.createElement('div');
+        headerRow.style.display = 'flex';
+        headerRow.style.alignItems = 'center';
+        headerRow.style.justifyContent = 'flex-end';
+        headerRow.appendChild(logoutBtn);
+        headerRow.appendChild(datetimeElement);
+        headerRow.appendChild(refreshBtn);
+        headerRow.appendChild(updateIndicator);
+        headerControls.appendChild(headerRow);
     }
 }
 
@@ -125,7 +170,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!checkAuthentication()) {
         return; // No continuar si no está autenticado
     }
-    
+
+    // Mostrar fecha y hora actuales en el header
+    updateDateTime();
+
     // Continuar con la inicialización normal del dashboard
     console.log('🚀 Inicializando dashboard...');
     initializeDashboard();
@@ -552,11 +600,27 @@ function updateDateTime() {
             minute: '2-digit'
         };
         
-        const datetimeElement = document.getElementById('datetime');
-        if (datetimeElement) {
-            datetimeElement.textContent = now.toLocaleDateString('es-ES', options);
+        let datetimeElement = document.getElementById('datetime');
+        if (!datetimeElement) {
+            datetimeElement = document.createElement('small');
+            datetimeElement.id = 'datetime';
+            datetimeElement.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-left: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls) {
+                headerControls.appendChild(datetimeElement);
+            }
         }
-        
+        datetimeElement.textContent = `${now.toLocaleDateString('es-ES', options)} ${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
         // Actualizar cada minuto
         setTimeout(updateDateTime, 60000);
     } catch (error) {
