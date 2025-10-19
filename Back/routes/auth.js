@@ -11,23 +11,7 @@ try {
     console.log('⚠️  Database no disponible para auth, usando usuarios locales');
 }
 
-// Usuarios válidos locales (fallback) - con contraseñas hasheadas
-const validUsers = [
-    { 
-        username: 'admin', 
-        password: '$2b$10$rT8FJvXQxPxqYZN.kxG5ROxJ9EYmhLPBj5q5aQ0N3FzZRqGQh9Kqy', // admin123
-        role: 'admin',
-        email: 'admin@iot.local',
-        created_at: new Date()
-    },
-    { 
-        username: 'user', 
-        password: '$2b$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGDMVr5yUP1KUOYTa', // user123
-        role: 'user',
-        email: 'user@iot.local',
-        created_at: new Date()
-    }
-];
+
 
 // POST - Login
 router.post('/auth/login', async (req, res) => {
@@ -60,24 +44,17 @@ router.post('/auth/login', async (req, res) => {
         }
         
         let user = null;
-        let authSource = 'local';
-        
-        // Intentar autenticar con la base de datos primero
+        // Solo autenticar contra la base de datos real
         if (db && db.isAvailable && db.pool) {
             try {
                 console.log('🔍 Buscando usuario en base de datos...');
-                
                 const result = await db.pool.query(
                     'SELECT id, username, password, role, email, created_at FROM users WHERE username = $1',
                     [username]
                 );
-                
                 if (result.rows.length > 0) {
                     const dbUser = result.rows[0];
-                    
-                    // Usar bcrypt para verificar la contraseña
                     const validPassword = await bcrypt.compare(password, dbUser.password);
-                    
                     if (validPassword) {
                         user = {
                             id: dbUser.id,
@@ -86,41 +63,15 @@ router.post('/auth/login', async (req, res) => {
                             email: dbUser.email,
                             created_at: dbUser.created_at
                         };
-                        authSource = 'database';
                         console.log('✅ Usuario autenticado desde base de datos');
                     }
                 }
             } catch (dbError) {
-                console.log('⚠️  Error en base de datos, usando autenticación local:', dbError.message);
+                console.log('❌ Error en base de datos:', dbError.message);
             }
         }
-        
-        // Fallback a autenticación local si no se encontró en BD
-        if (!user) {
-            console.log('🔍 Buscando usuario en datos locales...');
-            const localUser = validUsers.find(u => u.username === username);
-            
-            if (localUser) {
-                // Usar bcrypt para verificar la contraseña local
-                const validPassword = await bcrypt.compare(password, localUser.password);
-                
-                if (validPassword) {
-                    user = {
-                        username: localUser.username,
-                        role: localUser.role,
-                        email: localUser.email,
-                        created_at: localUser.created_at
-                    };
-                    authSource = 'local';
-                    console.log('✅ Usuario autenticado localmente');
-                }
-            }
-        }
-        
         if (user) {
-            // Registrar el login exitoso
             await logLoginAttempt(username, true, req.ip);
-            
             res.json({
                 success: true,
                 message: 'Login exitoso',
@@ -129,15 +80,12 @@ router.post('/auth/login', async (req, res) => {
                     role: user.role,
                     email: user.email
                 },
-                authSource: authSource,
+                authSource: 'database',
                 timestamp: new Date().toISOString()
             });
         } else {
             console.log('❌ Credenciales inválidas para:', username);
-            
-            // Registrar el intento fallido
             await logLoginAttempt(username, false, req.ip);
-            
             res.status(401).json({
                 success: false,
                 message: 'Credenciales inválidas'
