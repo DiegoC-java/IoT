@@ -3,6 +3,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
     const username = document.getElementById('username').value.trim();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const registerType = document.querySelector('input[name="registerType"]:checked').value;
     const alertBox = document.getElementById('alert');
     const alertMsg = alertBox.querySelector('.alert-message');
     alertBox.style.display = 'none';
@@ -18,7 +19,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         const res = await fetch('http://localhost:3000/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            body: JSON.stringify({ username, email, password, registerType })
         });
         const data = await res.json();
         if (res.ok && data.mfaRequired) {
@@ -35,11 +36,20 @@ document.getElementById('registerForm').addEventListener('submit', async functio
             alertBox.style.display = 'block';
             // Guardar email para verificación
             window._registerEmail = email;
+            // Si el registro es con MFA, redirigir al login tras activar usuario (ver abajo)
         } else {
-            alertMsg.textContent = data.message || 'Error al registrar.';
-            alertBox.classList.remove('alert-success');
-            alertBox.classList.add('alert-error');
-            alertBox.style.display = 'block';
+            if (data.success) {
+                alertMsg.textContent = '¡Usuario registrado exitosamente! Ahora puedes iniciar sesión.';
+                alertBox.classList.remove('alert-error');
+                alertBox.classList.add('alert-success');
+                alertBox.style.display = 'block';
+                setTimeout(() => window.location.href = 'login.html', 1500);
+            } else {
+                alertMsg.textContent = data.message || 'Error al registrar.';
+                alertBox.classList.remove('alert-success');
+                alertBox.classList.add('alert-error');
+                alertBox.style.display = 'block';
+            }
         }
     } catch (err) {
         alertMsg.textContent = 'Error de conexión con el servidor.';
@@ -74,7 +84,7 @@ document.getElementById('verifyMfaBtn').addEventListener('click', async function
             alertBox.classList.remove('alert-error');
             alertBox.classList.add('alert-success');
             alertBox.style.display = 'block';
-            setTimeout(() => window.location.href = 'login.html', 2000);
+            setTimeout(() => window.location.href = 'login.html', 1500);
         } else {
             alertMsg.textContent = data.message || 'Error al activar usuario.';
             alertBox.classList.remove('alert-success');
@@ -93,6 +103,23 @@ document.getElementById('verifyMfaBtn').addEventListener('click', async function
 });
 
 // Mostrar/ocultar contraseña
+// Cambiar visual según tipo de registro
+document.querySelectorAll('input[name="registerType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Guardar la opción seleccionada en localStorage antes de recargar
+        localStorage.setItem('registerTypeSelected', this.value);
+        window.location.reload();
+    });
+});
+// Al cargar la página, restaurar la opción seleccionada si existe
+window.addEventListener('DOMContentLoaded', () => {
+    const selected = localStorage.getItem('registerTypeSelected');
+    if (selected) {
+        const radio = document.querySelector(`input[name="registerType"][value="${selected}"]`);
+        if (radio) radio.checked = true;
+        localStorage.removeItem('registerTypeSelected');
+    }
+});
 const togglePassword = document.getElementById('togglePassword');
 togglePassword.addEventListener('click', function() {
     const passwordInput = document.getElementById('password');

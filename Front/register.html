@@ -31,6 +31,18 @@
             </div>
             <form class="login-form" id="registerForm">
                 <div class="form-group">
+                    <label>Tipo de registro</label>
+                    <div style="display:flex; gap:1rem; justify-content:center; margin-bottom:10px;">
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="registerType" value="mfa" checked>
+                            <span style="margin-left:6px;">Registrarse con MFA</span>
+                        </label>
+                        <label style="cursor:pointer;">
+                            <input type="radio" name="registerType" value="simple">
+                            <span style="margin-left:6px;">Registrarse sin MFA</span>
+                        </label>
+                    </div>
+                </div>
                     <label for="username">Usuario</label>
                     <div class="input-group">
                         <i class="fas fa-user"></i>

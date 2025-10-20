@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Benchmarks</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="benchmarks.css">
 </head>
 <body>
     <header class="header">
@@ -20,9 +20,77 @@
     </header>
     <main class="main-content">
         <section style="text-align:center; margin-top:3rem;">
-            <h2>Página de Benchmarks</h2>
-            <p>¡La navegación funciona correctamente!</p>
+            <div style="margin-top:2rem;">
+                <h3>1. PIR vs MPU6050</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Sensor</th>
+                            <th>Cantidad de Activaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PIR</td>
+                            <td id="pir-activaciones"></td>
+                        </tr>
+                        <tr>
+                            <td>MPU6050</td>
+                            <td id="mpu-activaciones"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:2rem;">
+                <h3>2. Alarma vs Email</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Velocidad de Notificación (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Alarma</td>
+                            <td id="alarma-velocidad"></td>
+                        </tr>
+                        <tr>
+                            <td>Email</td>
+                            <td id="email-velocidad"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top:2rem;">
+                <h3>3. Login MFA vs Login sin MFA</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Login</th>
+                            <th>Velocidad de Autenticación (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Login MFA</td>
+                            <td>
+                                <span id="login-mfa-velocidad"></span>
+                                <br>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Login sin MFA</td>
+                            <td>
+                                <span id="login-simple-velocidad"></span>
+                                <br>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </section>
     </main>
+    <script src="benchmarks.js"></script>
 </body>
 </html>

@@ -60,6 +60,48 @@ app.use('/api', devicesRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', authRoutes);
 
+// Endpoint de métricas para benchmarks
+let benchmarkMetrics = {
+    activaciones: {
+        PIR: 0,
+        MPU6050: 0
+    },
+    notificaciones: {
+        alarma: [], // array de ms
+        email: []   // array de ms
+    },
+    autenticacion: {
+        mfa: [],    // array de ms
+        simple: []  // array de ms
+    },
+    registro: {
+        mfa: [],    // array de ms
+        simple: []  // array de ms
+    }
+};
+
+// Endpoint para obtener métricas
+app.get('/api/benchmarks', (req, res) => {
+    res.json({
+        activaciones: {
+            PIR: benchmarkMetrics.activaciones.PIR,
+            MPU6050: benchmarkMetrics.activaciones.MPU6050
+        },
+        notificaciones: {
+            alarma: benchmarkMetrics.notificaciones.alarma.length ? Math.round(benchmarkMetrics.notificaciones.alarma.reduce((a,b)=>a+b,0)/benchmarkMetrics.notificaciones.alarma.length) : 0,
+            email: benchmarkMetrics.notificaciones.email.length ? Math.round(benchmarkMetrics.notificaciones.email.reduce((a,b)=>a+b,0)/benchmarkMetrics.notificaciones.email.length) : 0
+        },
+        autenticacion: {
+            mfa: benchmarkMetrics.autenticacion.mfa.length ? Math.round(benchmarkMetrics.autenticacion.mfa.reduce((a,b)=>a+b,0)/benchmarkMetrics.autenticacion.mfa.length) : 0,
+            simple: benchmarkMetrics.autenticacion.simple.length ? Math.round(benchmarkMetrics.autenticacion.simple.reduce((a,b)=>a+b,0)/benchmarkMetrics.autenticacion.simple.length) : 0
+        },
+        registro: {
+            mfa: benchmarkMetrics.registro.mfa.length ? Math.round(benchmarkMetrics.registro.mfa.reduce((a,b)=>a+b,0)/benchmarkMetrics.registro.mfa.length) : 0,
+            simple: benchmarkMetrics.registro.simple.length ? Math.round(benchmarkMetrics.registro.simple.reduce((a,b)=>a+b,0)/benchmarkMetrics.registro.simple.length) : 0
+        }
+    });
+});
+
 // Middleware para rutas no encontradas
 app.use('*', (req, res) => {
     res.status(404).json({
