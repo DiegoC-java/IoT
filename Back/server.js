@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const mqtt = require('mqtt'); // <-- NUEVO: Importamos la librería MQTT
-const { pool, testConnection, healthCheck } = require('./database');
+const mqtt = require('mqtt');
+const dbManager = require('./database');
+const pool = dbManager.pool;
 
 const app = express();
-const PORT = process.env.BACKEND_PORT || 3000;
+const PORT = process.env.BACKEND_PORT || 3001;
 
 // Configurar CORS antes de las rutas
 app.use(cors({
@@ -40,7 +41,7 @@ mqttClient.on('error', (error) => {
 app.get('/api/health', async (req, res) => {
     try {
         // Usar el health check mejorado
-        const dbHealth = await healthCheck();
+        const dbHealth = await dbManager.healthCheck();
         
         res.json({ 
             status: 'OK', 
@@ -140,6 +141,34 @@ app.get('/api/benchmarks', (req, res) => {
     });
 });
 
+// Después de las rutas existentes y antes de la ruta de alarma
+app.get('/api/events/latest', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM events ORDER BY timestamp DESC LIMIT 1'
+        );
+        
+        if (result.rows.length > 0) {
+            res.json({ 
+                success: true, 
+                data: result.rows[0] 
+            });
+        } else {
+            res.json({ 
+                success: true, 
+                data: null,
+                message: 'No hay eventos registrados'
+            });
+        }
+    } catch (error) {
+        console.error('Error obteniendo último evento:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: error.message 
+        });
+    }
+});
+
 // Middleware para rutas no encontradas
 app.use('*', (req, res) => {
     res.status(404).json({
@@ -181,8 +210,14 @@ app.listen(PORT, () => {
     console.log('========================================\n');
     
     // Verificar conexión a la base de datos
-    testConnection().catch(error => {
-        console.error('Error en conexión inicial:', error.message);
+    dbManager.testConnection().then(connected => {
+        if (connected) {
+            console.log('✅ Verificación de DB exitosa');
+        } else {
+            console.error('❌ Error en conexión inicial a la base de datos');
+        }
+    }).catch(error => {
+        console.error('❌ Error verificando conexión:', error.message);
     });
 });
 
