@@ -369,35 +369,3 @@ router.post('/auth/verify-mfa-register', async (req, res) => {
 });
 
 module.exports = router;
-// GET - Benchmarks de login y registro
-router.get('/auth/benchmarks', (req, res) => {
-    // Usar benchmarkMetrics si está disponible
-    let loginSimple = [];
-    let loginMfa = [];
-    let registroSimple = [];
-    let registroMfa = [];
-    try {
-        const { benchmarkMetrics } = require('../server');
-        if (benchmarkMetrics && benchmarkMetrics.autenticacion) {
-            loginSimple = benchmarkMetrics.autenticacion.simple || [];
-            loginMfa = benchmarkMetrics.autenticacion.mfa || [];
-        }
-        if (benchmarkMetrics && benchmarkMetrics.registro) {
-            registroSimple = benchmarkMetrics.registro.simple || [];
-            registroMfa = benchmarkMetrics.registro.mfa || [];
-        }
-    } catch (err) {
-        // Si no se puede importar, devolver arrays vacíos
-    }
-    // Calcular promedios
-    function promedio(arr) {
-        if (!arr || arr.length === 0) return null;
-        return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
-    }
-    res.json({
-        loginSimple: promedio(loginSimple),
-        loginMfa: promedio(loginMfa),
-        registroSimple: promedio(registroSimple),
-        registroMfa: promedio(registroMfa)
-    });
-});

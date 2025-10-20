@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const mqtt = require('mqtt'); // <-- NUEVO: Importamos la librería MQTT
 const { pool, testConnection, healthCheck } = require('./database');
 
 const app = express();
@@ -7,7 +8,7 @@ const PORT = process.env.BACKEND_PORT || 3000;
 
 // Configurar CORS antes de las rutas
 app.use(cors({
-    origin: '*',  // En producción, cambiar por tu dominio
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -22,6 +23,19 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ========================================================
+// --- NUEVO: CONFIGURACIÓN Y CONEXIÓN MQTT ---
+// ========================================================
+const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
+const mqttClient = mqtt.connect(MQTT_BROKER_URL);
+
+mqttClient.on('connect', () => {
+    console.log('✅ Conectado al broker MQTT');
+});
+
+mqttClient.on('error', (error) => {
+    console.error('❌ Error en la conexión MQTT:', error);
+});
 // Ruta de prueba
 app.get('/api/health', async (req, res) => {
     try {
@@ -59,6 +73,30 @@ const authRoutes = require('./routes/auth');
 app.use('/api', devicesRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', authRoutes);
+
+// ========================================================
+// --- NUEVA RUTA PARA CONTROLAR LA ALARMA ---
+// ========================================================
+app.post('/api/alarm/set-state', (req, res) => {
+    const { state } = req.body; // El frontend enviará 'active' o 'inactive'
+    
+    if (state !== 'active' && state !== 'inactive') {
+        return res.status(400).json({ success: false, message: 'Estado inválido. Debe ser "active" o "inactive".' });
+    }
+
+    const topic = 'esp32/alarm/set'; // El "canal" al que el ESP32 escuchará
+    const message = state;
+
+    // Publica el comando en el broker MQTT
+    mqttClient.publish(topic, message, (err) => {
+        if (err) {
+            console.error(`❌ Error publicando mensaje MQTT en ${topic}:`, err);
+            return res.status(500).json({ success: false, message: 'Error al enviar comando al ESP32.' });
+        }
+        console.log(`📤 Comando de alarma "${state}" enviado al ESP32 en el tema "${topic}"`);
+        res.json({ success: true, message: `Comando '${state}' enviado al dispositivo.` });
+    });
+});
 
 // Endpoint de métricas para benchmarks
 let benchmarkMetrics = {

@@ -913,3 +913,30 @@ body {
 .data-header h3 {
     color: #e2e8f0; /* Color blanco/gris claro, igual que el título del gráfico */
 }
+
+/* ======================================== */
+/* --- ESTILOS PARA TARJETA DE CONTROL --- */
+/* ======================================== */
+
+/* Hace que la tarjeta sea clickable */
+#alarm-control-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Efecto al pasar el mouse */
+#alarm-control-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: #60a5fa; /* Un borde azul para indicar acción */
+}
+
+/* Estilos para el ícono cuando el sistema está ARMADO */
+#system-status-icon.armed {
+    background: linear-gradient(135deg, #f87171, #ef4444); /* Rojo de alarma */
+}
+
+/* Estilos para el ícono cuando el sistema está DESARMADO */
+#system-status-icon.disarmed {
+    background: linear-gradient(135deg, #4ade80, #22c55e); /* Verde de seguridad */
+}

@@ -3,7 +3,7 @@
 
 let devicesChart;
 let currentData = {};
-
+let isAlarmSystemArmed = true; // El sistema empieza armado por defecto
 // Configuración de gráficos
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
@@ -242,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función principal de inicialización
 async function initializeDashboard() {
-    showLoading(true);
+    //showLoading(true);
     
     try {
         // Cargar datos
@@ -254,24 +254,79 @@ async function initializeDashboard() {
         initializeCharts();
         populateDevicesTable();
         setupEventListeners();
-        
+        //logica del armado y desarmado
+        setupAlarmControls(); // Asigna el evento 'click' a la tarjeta
+        updateAlarmUI();
         // Actualizar datos cada 30 segundos
         setInterval(refreshData, 30000);
         setInterval(fetchLatestEvent, 5000); // <-- ¡ESTA ES LA LÍNEA QUE FALTABA!
 
-        showLoading(false);
+        //showLoading(false);
         console.log('✅ Dashboard inicializado correctamente');
     } catch (error) {
         console.error('❌ Error inicializando dashboard:', error);
-        showLoading(false);
+        //showLoading(false);
+    }
+    setupAlarmControls();
+    updateAlarmUI(); // Llama para establecer el estado visual inicial
+}
+
+function updateAlarmUI() {
+    const statusText = document.getElementById('system-status-text');
+    const statusIcon = document.getElementById('system-status-icon');
+    
+    if (!statusText || !statusIcon) return;
+
+    if (isAlarmSystemArmed) {
+        statusText.textContent = 'Armado';
+        statusIcon.className = 'kpi-icon armed';
+    } else {
+        statusText.textContent = 'Desarmado';
+        statusIcon.className = 'kpi-icon disarmed';
     }
 }
 
+// Función que se ejecuta al hacer clic en la tarjeta de control
+async function handleToggleAlarm() {
+    const newState = isAlarmSystemArmed ? 'inactive' : 'active';
+    console.log(`Enviando comando para poner la alarma en estado: ${newState}`);
+
+    try {
+        const response = await fetch('http://localhost:3000/api/alarm/set-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: newState }),
+        });
+
+        if (!response.ok) throw new Error('La respuesta del servidor no fue OK');
+
+        const result = await response.json();
+
+        if (result.success) {
+            isAlarmSystemArmed = (newState === 'active');
+            updateAlarmUI();
+            console.log(`✅ Comando procesado. Nuevo estado: ${newState}`);
+        } else {
+            alert('Error al cambiar el estado de la alarma: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error de red al intentar cambiar el estado:', error);
+        alert('Error de conexión con el servidor. No se pudo cambiar el estado de la alarma.');
+    }
+}
+
+// Asigna el evento 'click' a la tarjeta de control
+function setupAlarmControls() {
+    const controlCard = document.getElementById('alarm-control-card');
+    if (controlCard) {
+        controlCard.addEventListener('click', handleToggleAlarm);
+    }
+}
 // Cargar datos desde el backend
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
-        showLoading(true);
+        //showLoading(true);
         
         const response = await fetch('http://localhost:3000/api/devices');
         console.log('📡 Estado de la respuesta:', response.status);
@@ -311,11 +366,11 @@ async function loadData() {
         updateDevicesChart();
         populateDevicesTable();
         updateLastUpdate();
-        showLoading(false);
+        //showLoading(false);
 
     } catch (error) {
         console.error('❌ Error:', error);
-        showLoading(false);
+        //showLoading(false);
         await loadDataFallback();
     }
 }

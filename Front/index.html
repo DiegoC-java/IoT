@@ -56,13 +56,13 @@
         <!-- KPI Cards -->
         <section class="kpi-section">
             <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-icon">
+                <div class="kpi-card" id="alarm-control-card"> <!-- <-- ID para hacerlo clickable -->
+                    <div class="kpi-icon" id="system-status-icon"> <!-- <-- ID para cambiar el color del ícono -->
                         <i class="fas fa-shield-alt"></i>
                     </div>
                     <div class="kpi-info">
                         <h3>Estado del Sistema</h3>
-                        <p id="systemStatus">--</p>
+                        <p class="kpi-value" id="system-status-text">Activo</p> <!-- <-- ID para cambiar el texto -->
                     </div>
                 </div>
                 <div class="kpi-card">
