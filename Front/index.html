@@ -74,13 +74,17 @@
                         <p id="alerts">--</p>
                     </div>
                 </div>
+                <!-- Dentro de tu sección de KPIs, reemplaza la tarjeta de "Eventos Recientes" -->
                 <div class="kpi-card">
-                    <div class="kpi-icon">
+                    <div class="kpi-icon-wrapper" style="background-color: #4a90e2;"> <!-- Un color azul, por ejemplo -->
                         <i class="fas fa-history"></i>
                     </div>
-                    <div class="kpi-info">
-                        <h3>Eventos Recientes</h3>
-                        <p id="recentEvents">--</p>
+                    <div class="kpi-content">
+                        <small>Última Alerta</small>
+                        <!-- Contenedor para la información del evento -->
+                        <div id="recent-event-display">
+                            <p class="no-events">No hay alertas recientes.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,7 +95,7 @@
             <div class="charts-grid">
                 <div class="chart-container">
                     <div class="chart-header">
-                        <h3>Estado de Dispositivos</h3>
+                        
                     </div>
                     <div class="chart-wrapper">
                         <canvas id="devicesChart"></canvas>

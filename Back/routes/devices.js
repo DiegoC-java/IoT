@@ -162,4 +162,48 @@ router.post('/events', async (req, res) => {
     }
 });
 
+// ========================================================
+// --- NUEVA RUTA PARA EVENTOS RECIENTES ---
+// ========================================================
+
+/**
+ * @route   GET /api/events/latest
+ * @desc    Obtiene el evento de alarma más reciente de la base de datos.
+ */
+router.get('/events/latest', async (req, res) => {
+    try {
+        if (!pool) {
+            return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
+        }
+
+        const query = `
+            SELECT * FROM device_events
+            ORDER BY timestamp DESC
+            LIMIT 1;
+        `;
+
+        const result = await pool.query(query);
+
+        if (result.rows.length === 0) {
+            return res.json({
+                success: true,
+                message: 'No hay eventos recientes',
+                data: null
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error('Error obteniendo el último evento:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;

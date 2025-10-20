@@ -5,12 +5,13 @@ const mfaCodes = {};
 
 // Configuración de nodemailer (puedes ajustar según tu proveedor)
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Cambia si usas otro proveedor
+    service: 'gmail',
     auth: {
         user: process.env.PGADMIN_EMAIL || 'admin@iot.local',
         pass: process.env.PGADMIN_PASSWORD || 'admin123'
     }
 });
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');

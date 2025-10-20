@@ -8,6 +8,66 @@ let currentData = {};
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
 
+// --- NUEVO: Función para buscar y actualizar el evento más reciente ---
+async function fetchLatestEvent() {
+    try {
+        const response = await fetch('http://localhost:3000/api/events/latest');
+        if (!response.ok) {
+            // No mostrar error en consola para no saturar, ya que se llama constantemente
+            return;
+        }
+        const result = await response.json();
+        if (result.success && result.data) {
+            updateRecentEventCard(result.data);
+        } else {
+            updateRecentEventCard(null); // No hay eventos
+        }
+    } catch (error) {
+        // Ignorar errores de fetch para que el polling no se detenga
+        console.error('Error en fetchLatestEvent:', error.message);
+    }
+}
+
+// --- NUEVO: Función para actualizar la tarjeta de "Eventos Recientes" en el HTML ---
+function updateRecentEventCard(event) {
+    const eventContainer = document.getElementById('recent-event-display');
+    if (!eventContainer) return;
+
+    if (!event) {
+        eventContainer.innerHTML = '<p class="no-events">No hay alertas recientes.</p>';
+        return;
+    }
+
+    const eventTime = new Date(event.timestamp).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    let description = 'Evento desconocido';
+    let icon = 'fas fa-question-circle';
+    let eventClass = ''; // <-- Variable para la clase de color
+
+    if (event.event_type === 'motion_detected') {
+        description = 'Movimiento detectado';
+        icon = 'fas fa-walking';
+        eventClass = 'motion'; // <-- Asigna la clase 'motion'
+    } else if (event.event_type === 'vibration_detected') {
+        description = 'Vibración detectada';
+        icon = 'fas fa-broadcast-tower'; // Un icono más representativo de vibración
+        eventClass = 'vibration'; // <-- Asigna la clase 'vibration'
+    }
+
+    // Usamos la nueva clase en el div principal para aplicar los colores
+    eventContainer.innerHTML = `
+        <div class="event-details ${eventClass}">
+            <i class="${icon}"></i>
+            <span>${description}</span>
+        </div>
+        <div class="event-time">a las ${eventTime}</div>
+    `;
+}
+
 // Verificar autenticación al cargar el dashboard
 function checkAuthentication() {
     const currentUser = localStorage.getItem('iot_user');
@@ -189,6 +249,7 @@ async function initializeDashboard() {
         await loadData();
         
         // Inicializar componentes
+        await fetchLatestEvent();
         updateDateTime();
         initializeCharts();
         populateDevicesTable();
@@ -390,11 +451,17 @@ function initializeDevicesChart() {
     
     const chartCtx = ctx.getContext('2d');
     
-    // Calcular estados de dispositivos
     const statusCount = { online: 0, offline: 0, warning: 0 };
-    currentData.devices.forEach(device => {
-        statusCount[device.status] = (statusCount[device.status] || 0) + 1;
-    });
+    if(currentData.devices) {
+        currentData.devices.forEach(device => {
+            statusCount[device.status] = (statusCount[device.status] || 0) + 1;
+        });
+    }
+    
+    // Si ya existe un gráfico, destrúyelo antes de crear uno nuevo
+    if (devicesChart) {
+        devicesChart.destroy();
+    }
     
     devicesChart = new Chart(chartCtx, {
         type: 'doughnut',
@@ -407,35 +474,41 @@ function initializeDevicesChart() {
                     statusCount.warning
                 ],
                 backgroundColor: [
-                    '#22c55e',
-                    '#ef4444',
-                    '#f59e0b'
+                    '#22c55e', // Verde para 'En línea'
+                    '#ef4444', // Rojo para 'Fuera de línea'
+                    '#f59e0b'  // Naranja para 'Advertencia'
                 ],
-                borderWidth: 2,
-                borderColor: '#ffffff'
+                borderWidth: 4, // Borde más grueso para mejor separación
+                borderColor: '#1e293b' // Color de fondo del contenedor
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '70%', // Hacer el donut un poco más delgado
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
                         padding: 20,
-                        usePointStyle: true
+                        usePointStyle: true,
+                        color: '#cbd5e1' // <-- CAMBIO CLAVE: Color de la leyenda
+                    }
+                },
+                title: { // <-- NUEVO: Para controlar el título
+                    display: true,
+                    text: 'Estado de Dispositivos',
+                    color: '#e2e8f0', // <-- CAMBIO CLAVE: Color del título
+                    font: {
+                        size: 18,
+                        weight: '600'
+                    },
+                    padding: {
+                        bottom: 20
                     }
                 },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    }
+                    // (Tu configuración de tooltip es correcta, no necesita cambios)
                 }
             }
         }
@@ -600,6 +673,7 @@ async function refreshData() {
     try {
         console.log('🔄 Refrescando datos...');
         await loadData();
+        await fetchLatestEvent(); // --- NUEVO: Refresca también el último evento ---
         
     // Actualizar gráfico de dispositivos
     updateDevicesChart();
