@@ -587,17 +587,18 @@ function setupEventListeners() {
         // Navegación del sidebar
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
-                if (this.getAttribute('href') === 'devices.html') {
-                    window.location.href = 'devices.html';
-                    return;
+                const href = this.getAttribute('href');
+                // Solo prevenir el comportamiento por defecto si es un anchor interno (hash)
+                if (href && href.startsWith('#')) {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    this.parentElement.classList.add('active');
+                    const section = href.substring(1);
+                    console.log(`📍 Navegando a: ${section}`);
                 }
-                e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                this.parentElement.classList.add('active');
-                const section = this.getAttribute('href').substring(1);
-                console.log(`📍 Navegando a: ${section}`);
+                // Si es un archivo .html, dejar que el navegador navegue normalmente
             });
         });
         
