@@ -257,7 +257,8 @@ async function initializeDashboard() {
         
         // Actualizar datos cada 30 segundos
         setInterval(refreshData, 30000);
-        
+        setInterval(fetchLatestEvent, 5000); // <-- ¡ESTA ES LA LÍNEA QUE FALTABA!
+
         showLoading(false);
         console.log('✅ Dashboard inicializado correctamente');
     } catch (error) {
