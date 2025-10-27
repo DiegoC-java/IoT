@@ -7,6 +7,36 @@ const { sendAlertEmail } = require('../services/emailService');
 const { pool } = require('../database');
 console.log('routes/devices loaded — pool available:', !!pool);
 
+// GET - Histograma de activaciones de alarma por hora
+router.get('/events/histograma-horas', async (req, res) => {
+    try {
+        if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
+
+        // Consulta: cuenta activaciones de alarma por hora (0-23)
+        const result = await pool.query(`
+            SELECT
+                EXTRACT(HOUR FROM timestamp) AS hora,
+                COUNT(*) AS activaciones
+            FROM device_events
+            WHERE event_type = 'alarma_activada'
+            GROUP BY hora
+            ORDER BY hora
+        `);
+
+        // Inicializar array de 24 horas en 0
+        const histograma = Array(24).fill(0);
+        result.rows.forEach(row => {
+            const h = parseInt(row.hora);
+            histograma[h] = parseInt(row.activaciones);
+        });
+
+        res.json({ success: true, data: histograma, message: 'Histograma de activaciones por hora' });
+    } catch (error) {
+        console.error('Error obteniendo histograma:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // (Tus datos simulados y funciones de mapeo se mantienen igual)
 const simulatedDevices = [
     {
@@ -69,31 +99,50 @@ router.get('/devices/:id', async (req, res) => {
 });
 
 
-// POST - Recibir eventos de sensores (VERSIÓN SIMPLIFICADA PARA PRUEBAS)
+
+// Refactor: Validar datos del evento
+function validateEventData(body) {
+    const requiredFields = ['device_id', 'event_type', 'sensor_type', 'sensor_value', 'timestamp'];
+    for (const field of requiredFields) {
+        if (!body[field]) {
+            return `Falta el campo requerido: ${field}`;
+        }
+    }
+    return null;
+}
+
+// Refactor: Manejo de errores
+function handleError(res, error, message = 'Error interno') {
+    console.error(message, error);
+    res.status(500).json({ success: false, message: error.message || message });
+}
+
+// POST - Recibir eventos de sensores (refactorizado)
 router.post('/events', async (req, res) => {
     try {
         console.log('📥 Evento recibido:', req.body);
+        const validationError = validateEventData(req.body);
+        if (validationError) {
+            return res.status(400).json({ success: false, message: validationError });
+        }
         const { device_id, event_type, sensor_type, sensor_value, timestamp } = req.body;
 
-        // 1. Insertar evento en la base de datos
+        // Insertar evento en la base de datos
         const eventResult = await pool.query(
             'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [device_id, event_type, sensor_type, sensor_value, timestamp]
         );
 
-        // --- LÓGICA DE NOTIFICACIÓN SIMPLIFICADA ---
-        // 2. Obtener el correo de destino directamente desde el archivo .env
+        // Notificación por correo
         const recipientEmail = process.env.ALERT_EMAIL_RECIPIENT;
-
         if (recipientEmail) {
             console.log(`📬 Preparando notificación para la dirección fija: ${recipientEmail}...`);
-            // 3. Enviar correo de alerta (no bloqueante)
             sendAlertEmail(recipientEmail, eventResult.rows[0]);
         } else {
             console.warn(`⚠️ La variable ALERT_EMAIL_RECIPIENT no está definida en el archivo .env. No se enviará correo.`);
         }
 
-        // 4. Responder al ESP32
+        // Responder al ESP32
         res.status(201).json({
             success: true,
             message: 'Evento registrado y notificación en proceso',
@@ -101,11 +150,7 @@ router.post('/events', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error guardando evento:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+        handleError(res, error, 'Error guardando evento:');
     }
 });
 

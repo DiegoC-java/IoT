@@ -5,7 +5,7 @@ const dbManager = require('./database');
 const pool = dbManager.pool;
 
 const app = express();
-const PORT = process.env.BACKEND_PORT || 3001;
+const PORT = process.env.BACKEND_PORT || 3000;
 
 // Configurar CORS antes de las rutas
 app.use(cors({

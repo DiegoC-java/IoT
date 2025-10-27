@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
+const { sendAlertEmail } = require('../services/emailService');
 
 // Importar database con manejo de errores
 let db = null;
@@ -24,38 +25,37 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Refactor: Validación de login
+function validateLoginData(username, password) {
+    if (!username || !password) {
+        return 'Usuario y contraseña son requeridos';
+    }
+    if (username.length < 3) {
+        return 'El usuario debe tener al menos 3 caracteres';
+    }
+    if (password.length < 6) {
+        return 'La contraseña debe tener al menos 6 caracteres';
+    }
+    return null;
+}
+
+// Refactor: Manejo de errores
+function handleError(res, error, message = 'Error interno del servidor') {
+    console.error(message, error);
+    res.status(500).json({ success: false, message: error.message || message });
+}
+
 // ==================== LOGIN ====================
 router.post('/auth/login', async (req, res) => {
     const start = Date.now();
     try {
         const { username, password } = req.body;
         console.log('🔐 Intento de login recibido:', username);
-        
-        // Validaciones básicas
-        if (!username || !password) {
-            console.log('❌ Credenciales faltantes');
-            return res.status(400).json({
-                success: false,
-                message: 'Usuario y contraseña son requeridos'
-            });
+        const validationError = validateLoginData(username, password);
+        if (validationError) {
+            return res.status(400).json({ success: false, message: validationError });
         }
-        
-        if (username.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'El usuario debe tener al menos 3 caracteres'
-            });
-        }
-        
-        if (password.length < 6) {
-            return res.status(400).json({
-                success: false,
-                message: 'La contraseña debe tener al menos 6 caracteres'
-            });
-        }
-        
         let user = null;
-        
         // Autenticar contra la base de datos
         if (db && db.isAvailable && db.pool) {
             try {
@@ -64,11 +64,9 @@ router.post('/auth/login', async (req, res) => {
                     'SELECT id, username, password, role, email, created_at FROM users WHERE username = $1',
                     [username]
                 );
-                
                 if (result.rows.length > 0) {
                     const dbUser = result.rows[0];
                     const validPassword = await bcrypt.compare(password, dbUser.password);
-                    
                     if (validPassword) {
                         user = {
                             id: dbUser.id,
@@ -84,12 +82,10 @@ router.post('/auth/login', async (req, res) => {
                 console.log('❌ Error en base de datos:', dbError.message);
             }
         }
-        
         if (user) {
             await logLoginAttempt(username, true, req.ip);
             const duration = Date.now() - start;
             console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
-            
             return res.json({
                 success: true,
                 message: 'Login exitoso',
@@ -107,19 +103,10 @@ router.post('/auth/login', async (req, res) => {
             await logLoginAttempt(username, false, req.ip);
             const duration = Date.now() - start;
             console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
-            
-            return res.status(401).json({
-                success: false,
-                message: 'Credenciales inválidas'
-            });
+            return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
         }
-        
     } catch (error) {
-        console.error('❌ Error en endpoint de login:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor'
-        });
+        handleError(res, error, 'Error en endpoint de login:');
     }
 });
 
@@ -195,20 +182,20 @@ router.post('/auth/register', async (req, res) => {
             const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
             const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
             mfaCodes[email] = { code: mfaCode, expiresAt, username, hashedPassword, role };
-            
+
             const startMail = Date.now();
             try {
-                await transporter.sendMail({
-                    from: 'IoT Dashboard <admin@iot.local>',
-                    to: email,
-                    subject: 'Tu código de verificación IoT',
-                    text: `Tu código de verificación es: ${mfaCode}\nEste código expira en 5 minutos.`
+                // Usar emailService para enviar el código de verificación
+                await sendAlertEmail(email, {
+                    event_type: 'mfa_register',
+                    sensor_type: 'registro',
+                    timestamp: Date.now(),
+                    device_id: 'web',
+                    mfaCode
                 });
-                
                 const mailTimeMs = Date.now() - startMail;
                 console.log(`📧 Código MFA enviado a ${email}: ${mfaCode}`);
                 console.log(`⏱️ Tiempo en enviar correo: ${mailTimeMs} ms`);
-                
                 return res.status(201).json({
                     success: true,
                     message: 'Se envió un código de verificación al correo.',
