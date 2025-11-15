@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config({ path: '../.env' });// Asegúrate de que las variables de entorno se carguen
+require('dotenv').config({ path: '../../.env' });// Asegúrate de que las variables de entorno se carguen
 
 // 1. Configurar el "transportador" de correo.
 //    Lee las credenciales de tu archivo .env
@@ -63,5 +63,40 @@ async function sendAlertEmail(recipientEmail, eventData) {
     }
 }
 
-module.exports = { sendAlertEmail };
+/**
+ * Envía un correo con código de verificación MFA.
+ * @param {string} recipientEmail - El correo del usuario.
+ * @param {string} mfaCode - El código de verificación de 6 dígitos.
+ */
+async function sendMFACode(recipientEmail, mfaCode) {
+    try {
+        if (!validateRecipient(recipientEmail)) return;
+        
+        const mailOptions = {
+            from: `"Sistema IoT" <${process.env.EMAIL_USER}>`,
+            to: recipientEmail,
+            subject: '🔐 Tu código de verificación - Sistema IoT',
+            html: `
+                <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; text-align: center;">
+                    <h2 style="color: #3498db;">Código de Verificación</h2>
+                    <p>Tu código de verificación para el Sistema IoT es:</p>
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <h1 style="color: #3498db; letter-spacing: 5px; font-family: monospace;">${mfaCode}</h1>
+                    </div>
+                    <p style="color: #7f8c8d;">Este código expira en 5 minutos.</p>
+                    <p style="color: #e74c3c; font-weight: bold;">No compartas este código con nadie.</p>
+                    <hr>
+                    <small style="color: #95a5a6;">Si no solicitaste este código, ignora este mensaje.</small>
+                </div>
+            `
+        };
+        
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Código MFA enviado a ${recipientEmail}: ${info.messageId}`);
+    } catch (error) {
+        console.error('❌ Error enviando código MFA:', error);
+    }
+}
+
+module.exports = { sendAlertEmail, sendMFACode };
 

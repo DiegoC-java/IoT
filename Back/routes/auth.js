@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const { sendAlertEmail } = require('../services/emailService');
+const { sendAlertEmail, sendMFACode } = require('../services/emailService');
 
 // Importar database con manejo de errores
 let db = null;
@@ -186,13 +186,7 @@ router.post('/auth/register', async (req, res) => {
             const startMail = Date.now();
             try {
                 // Usar emailService para enviar el código de verificación
-                await sendAlertEmail(email, {
-                    event_type: 'mfa_register',
-                    sensor_type: 'registro',
-                    timestamp: Date.now(),
-                    device_id: 'web',
-                    mfaCode
-                });
+                await sendMFACode(email, mfaCode);
                 const mailTimeMs = Date.now() - startMail;
                 console.log(`📧 Código MFA enviado a ${email}: ${mfaCode}`);
                 console.log(`⏱️ Tiempo en enviar correo: ${mailTimeMs} ms`);

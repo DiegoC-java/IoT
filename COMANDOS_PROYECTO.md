@@ -114,3 +114,7 @@ python3 -m http.server 8080
 ---
 
 **Recuerda ejecutar los comandos en la carpeta raíz del proyecto o en la carpeta correspondiente.**
+
+
+# contraseña de aplicacion:
+-   azba wfta aeef jlxx 
