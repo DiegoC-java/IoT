@@ -22,6 +22,10 @@ PubSubClient mqttClient(espClient);
 // --- ESTADO GLOBAL DEL SISTEMA ---
 bool isAlarmSystemArmed = true; // El sistema empieza armado por defecto
 
+// --- Heartbeat MQTT ---
+unsigned long lastHeartbeat = 0;
+const unsigned long HEARTBEAT_INTERVAL_MS = 2000;
+
 // --- Pines de los componentes ---
 const int ledRojoPin = 19;
 const int ledVibracionPin = 18;
@@ -80,13 +84,30 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+void publishStatus(const char* status) {
+  if (!mqttClient.connected()) return;
+  String topic = String("esp32/") + DEVICE_ID + "/status";
+  mqttClient.publish(topic.c_str(), status, true);
+}
+
+void sendHeartbeat() {
+  if (!mqttClient.connected()) return;
+  String topic = String("esp32/") + DEVICE_ID + "/heartbeat";
+  mqttClient.publish(topic.c_str(), "ping");
+}
+
 void reconnectMqtt() {
   while (!mqttClient.connected()) {
     Serial.print("Intentando conexión MQTT...");
-    if (mqttClient.connect(DEVICE_ID)) {
+    String clientId = String(DEVICE_ID) + "_client";
+    String willTopic = String("esp32/") + DEVICE_ID + "/status";
+    if (mqttClient.connect(clientId.c_str(), nullptr, nullptr, willTopic.c_str(), 1, true, "offline")) {
       Serial.println(" ¡conectado!");
       mqttClient.subscribe("esp32/alarm/set");
       Serial.println("Suscrito al tema 'esp32/alarm/set'");
+      publishStatus("online");
+      sendHeartbeat();
+      lastHeartbeat = millis();
     } else {
       Serial.printf(" falló, rc=%d. Reintentando en 5 segundos\n", mqttClient.state());
       delay(5000);
@@ -208,6 +229,12 @@ void loop() {
     reconnectMqtt();
   }
   mqttClient.loop(); // Esencial para procesar mensajes MQTT entrantes
+
+  unsigned long now = millis();
+  if (mqttClient.connected() && now - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
+    lastHeartbeat = now;
+    sendHeartbeat();
+  }
 
   // --- LÓGICA PRINCIPAL DE LA ALARMA ---
   unsigned long currentTime = millis();

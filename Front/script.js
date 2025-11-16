@@ -4,6 +4,7 @@
 let devicesChart;
 let currentData = {};
 let isAlarmSystemArmed = true; // El sistema empieza armado por defecto
+let refreshInProgress = false; // evita solapado de peticiones
 // Configuración de gráficos
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
@@ -11,7 +12,7 @@ Chart.defaults.color = '#64748b';
 // --- NUEVO: Función para buscar y actualizar el evento más reciente ---
 async function fetchLatestEvent() {
     try {
-        const response = await fetch('http://localhost:3001/api/events/latest');
+        const response = await fetch('http://localhost:3000/api/events/latest');
         if (!response.ok) {
             // No mostrar error en consola para no saturar, ya que se llama constantemente
             return;
@@ -210,7 +211,7 @@ function logout() {
         
         // Llamar al endpoint de logout si está disponible
         try {
-            fetch('http://localhost:3001/api/auth/logout', {
+            fetch('http://localhost:3000/api/auth/logout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             }).catch(() => {}); // Ignorar errores del backend
@@ -258,7 +259,7 @@ async function initializeDashboard() {
         setupAlarmControls(); // Asigna el evento 'click' a la tarjeta
         updateAlarmUI();
         // Actualizar datos cada 30 segundos
-        setInterval(refreshData, 30000);
+        setInterval(refreshData, 3000);
         setInterval(fetchLatestEvent, 5000); // <-- ¡ESTA ES LA LÍNEA QUE FALTABA!
 
         //showLoading(false);
@@ -292,7 +293,7 @@ async function handleToggleAlarm() {
     console.log(`Enviando comando para poner la alarma en estado: ${newState}`);
 
     try {
-        const response = await fetch('http://localhost:3001/api/alarm/set-state', {
+        const response = await fetch('http://localhost:3000/api/alarm/set-state', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ state: newState }),
@@ -328,7 +329,8 @@ async function loadData() {
         console.log('🔄 Cargando datos desde el backend...');
         //showLoading(true);
         
-        const response = await fetch('http://localhost:3001/api/devices');
+        // Request only the real device (ESP32) to avoid showing seeded/simulated devices
+        const response = await fetch('http://localhost:3000/api/devices?device_id=ESP32_ALARM_01');
         console.log('📡 Estado de la respuesta:', response.status);
         
         if (!response.ok) {
@@ -719,6 +721,10 @@ function showLoading(show) {
 
 // Refrescar datos
 async function refreshData() {
+    if (refreshInProgress) {
+        return; // hay una actualización en curso
+    }
+    refreshInProgress = true;
     const refreshBtn = document.getElementById('refreshBtn');
     const icon = refreshBtn ? refreshBtn.querySelector('i') : null;
     
@@ -746,6 +752,7 @@ async function refreshData() {
                 icon.style.animation = '';
             }, 1000);
         }
+        refreshInProgress = false;
     }
 }
 
@@ -781,7 +788,7 @@ async function viewDevice(deviceId) {
         console.log(`👁️ Viendo dispositivo: ${deviceId}`);
         
         // Intentar obtener datos del backend
-        const response = await fetch(`http://localhost:3001/api/devices/${deviceId}`);
+        const response = await fetch(`http://localhost:3000/api/devices/${deviceId}`);
         
         if (response.ok) {
             const result = await response.json();
@@ -820,7 +827,7 @@ async function editDevice(deviceId) {
         if (newName && newName.trim() && newName.trim() !== device.name) {
             try {
                 // Intentar actualizar en el backend
-                const response = await fetch(`http://localhost:3001/api/devices/${deviceId}`, {
+                const response = await fetch(`http://localhost:3000/api/devices/${deviceId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

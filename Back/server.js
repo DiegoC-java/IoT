@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const cors = require('cors');
 const mqtt = require('mqtt');
 const dbManager = require('./database');
@@ -32,11 +34,99 @@ const mqttClient = mqtt.connect(MQTT_BROKER_URL);
 
 mqttClient.on('connect', () => {
     console.log('✅ Conectado al broker MQTT');
+    // Suscribirse a estados vía MQTT (opcional si ESP32 publica LWT/heartbeat)
+    try {
+        mqttClient.subscribe('esp32/+/status', (err) => {
+            if (err) {
+                console.error('❌ Error suscribiendo a esp32/+/status:', err.message);
+            } else {
+                console.log('📡 Suscrito a tópicos de estado: esp32/+/status');
+            }
+        });
+        mqttClient.subscribe('esp32/+/heartbeat', (err) => {
+            if (err) {
+                console.error('❌ Error suscribiendo a esp32/+/heartbeat:', err.message);
+            } else {
+                console.log('📡 Suscrito a tópicos de heartbeat: esp32/+/heartbeat');
+            }
+        });
+    } catch (e) {
+        console.error('❌ Error al suscribirse a tópicos MQTT:', e.message);
+    }
 });
 
 mqttClient.on('error', (error) => {
     console.error('❌ Error en la conexión MQTT:', error);
 });
+
+// Actualizar estado de dispositivos desde mensajes MQTT 'esp32/{deviceId}/status'
+mqttClient.on('message', async (topic, payload) => {
+    try {
+        // Status topic
+        let m = topic.match(/^esp32\/([^/]+)\/status$/);
+        if (m) {
+            const deviceId = m[1];
+            const statusMsg = payload.toString().trim().toLowerCase(); // 'online' | 'offline'
+            if (statusMsg !== 'online' && statusMsg !== 'offline') return;
+
+            const lastSeenValue = statusMsg === 'online' ? new Date() : null;
+            const upsertSql = `
+                INSERT INTO devices (id, name, device_type, status, last_seen, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    last_seen = COALESCE(EXCLUDED.last_seen, devices.last_seen),
+                    updated_at = NOW();
+            `;
+            await pool.query(upsertSql, [deviceId, deviceId, 'esp32', statusMsg, lastSeenValue]);
+            console.log(`🔄 Estado MQTT actualizado: ${deviceId} -> ${statusMsg}`);
+            return;
+        }
+
+        // Heartbeat topic
+        m = topic.match(/^esp32\/([^/]+)\/heartbeat$/);
+        if (m) {
+            const deviceId = m[1];
+            const upsertSql = `
+                INSERT INTO devices (id, name, device_type, status, last_seen, created_at, updated_at)
+                VALUES ($1, $2, $3, 'online', NOW(), NOW(), NOW())
+                ON CONFLICT (id) DO UPDATE SET
+                    status = 'online',
+                    last_seen = NOW(),
+                    updated_at = NOW();
+            `;
+            await pool.query(upsertSql, [deviceId, deviceId, 'esp32']);
+            console.log(`💓 Heartbeat MQTT recibido: ${deviceId}`);
+        }
+    } catch (e) {
+        console.error('❌ Error procesando mensaje MQTT de estado:', e.message);
+    }
+});
+
+// ========================================================
+// --- MARCADOR AUTOMÁTICO OFFLINE POR INACTIVIDAD ---
+// ========================================================
+const OFFLINE_THRESHOLD_SECONDS = parseInt(process.env.DEVICE_OFFLINE_THRESHOLD_SECONDS || '120', 10); // 2 min por defecto
+const STATUS_SWEEP_SECONDS = parseInt(process.env.DEVICE_STATUS_SWEEP_SECONDS || '30', 10); // cada 30s
+
+async function runOfflineSweep() {
+    const sql = `
+        UPDATE devices
+        SET status = 'offline', updated_at = NOW()
+        WHERE status IS DISTINCT FROM 'offline'
+          AND (last_seen IS NULL OR last_seen < NOW() - ($1 || ' seconds')::interval);
+    `;
+    try {
+        const result = await pool.query(sql, [OFFLINE_THRESHOLD_SECONDS]);
+        if (result.rowCount > 0) {
+            console.log(`⏱️  Marcados offline por inactividad: ${result.rowCount}`);
+        }
+    } catch (e) {
+        console.error('❌ Error en sweep de estados:', e.message);
+    }
+}
+
+setInterval(runOfflineSweep, STATUS_SWEEP_SECONDS * 1000);
 // Ruta de prueba
 app.get('/api/health', async (req, res) => {
     try {
