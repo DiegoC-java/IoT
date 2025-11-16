@@ -39,53 +39,6 @@
             color: #1976D2;
             font-size: 14px;
         }
-
-        /* Animación de carga */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-            display: none;
-        }
-
-        .loader.show {
-            display: block;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .btn-loading {
-            position: relative;
-            color: transparent !important;
-        }
-
-        .btn-loading::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            top: 50%;
-            left: 50%;
-            margin-left: -8px;
-            margin-top: -8px;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            border-top: 2px solid transparent;
-            animation: spin 0.8s linear infinite;
-        }
-
-        /* Animación suave para botones */
-        button:disabled {
-            opacity: 0.7 !important;
-            cursor: not-allowed !important;
-        }
     </style>
 </head>
 <body>
@@ -227,24 +180,15 @@
             alert.className = 'alert';
         }
 
-        function setLoadingState(loading, isVerify = false) {
-            const loginBtn = document.getElementById('loginBtn');
+        function setLoadingState(loading) {
+            const btn = document.getElementById('loginBtn');
             const verifyBtn = document.getElementById('verifyMfaBtn');
-            
             if (loading) {
-                loginBtn.disabled = true;
-                loginBtn.classList.add('btn-loading');
+                btn.disabled = true;
                 verifyBtn.disabled = true;
-                verifyBtn.classList.add('btn-loading');
-                loginBtn.style.opacity = '0.7';
-                verifyBtn.style.opacity = '0.7';
             } else {
-                loginBtn.disabled = false;
-                loginBtn.classList.remove('btn-loading');
+                btn.disabled = false;
                 verifyBtn.disabled = false;
-                verifyBtn.classList.remove('btn-loading');
-                loginBtn.style.opacity = '1';
-                verifyBtn.style.opacity = '1';
             }
         }
 
@@ -305,11 +249,10 @@
                         username: data.user.username,
                         role: data.user.role
                     }));
-                    localStorage.setItem('iot_login_time', new Date().getTime().toString());
                     
-                    // Garantizar redirect después de guardar en localStorage
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    window.location.replace('index.html');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return;
                 }
 
@@ -350,16 +293,15 @@
 
                 if (data.success) {
                     console.log('✅ Código válido - Login completado');
-                    showAlert('✅ Login exitoso - Redirigiendo...', 'success');
+                    showAlert('✅ Login exitoso', 'success');
                     localStorage.setItem('iot_user', JSON.stringify({
                         username: mfaUsername,
                         role: data.user.role
                     }));
-                    localStorage.setItem('iot_login_time', new Date().getTime().toString());
                     
-                    // Garantizar redirect después de guardar en localStorage
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    window.location.replace('index.html');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return;
                 }
 

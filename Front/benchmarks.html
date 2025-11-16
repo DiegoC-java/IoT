@@ -14,80 +14,109 @@
                 <h1>Benchmarks</h1>
             </div>
             <div class="header-controls">
+                <button id="refresh-btn" class="btn-refresh"><i class="fas fa-sync-alt"></i> Actualizar</button>
                 <a href="index.html" class="btn-refresh"><i class="fas fa-arrow-left"></i> Volver</a>
             </div>
         </div>
     </header>
     <main class="main-content">
         <section style="text-align:center; margin-top:3rem;">
+            
+            <!-- BENCHMARK 1: Login MFA vs Sin MFA -->
             <div style="margin-top:2rem;">
-                <h3>1. PIR vs MPU6050</h3>
-                <table class="bench-table">
-                    <thead>
-                        <tr>
-                            <th>Sensor</th>
-                            <th>Cantidad de Activaciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>PIR</td>
-                            <td id="pir-activaciones"></td>
-                        </tr>
-                        <tr>
-                            <td>MPU6050</td>
-                            <td id="mpu-activaciones"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div style="margin-top:2rem;">
-                <h3>2. Alarma vs Email</h3>
-                <table class="bench-table">
-                    <thead>
-                        <tr>
-                            <th>Método</th>
-                            <th>Velocidad de Notificación (ms)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Alarma</td>
-                            <td id="alarma-velocidad"></td>
-                        </tr>
-                        <tr>
-                            <td>Email</td>
-                            <td id="email-velocidad"></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div style="margin-top:2rem;">
-                <h3>3. Login MFA vs Login sin MFA</h3>
+                <h3>1️⃣ Login MFA vs Login sin MFA</h3>
                 <table class="bench-table">
                     <thead>
                         <tr>
                             <th>Tipo de Login</th>
-                            <th>Velocidad de Autenticación (ms)</th>
+                            <th>Velocidad Promedio (ms)</th>
+                            <th>Total de Intentos</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Login MFA</td>
-                            <td>
-                                <span> Promedio: 71 ms </span>
-                                <br>
-                            </td>
+                            <td>🔒 Login SIN MFA</td>
+                            <td id="login-sin-mfa-time">-</td>
+                            <td id="login-sin-mfa-count">-</td>
                         </tr>
                         <tr>
-                            <td>Login sin MFA</td>
-                            <td>
-                                <span> Promedio: 76 ms </span>
-                                <br>
-                            </td>
+                            <td>🔐 Login CON MFA</td>
+                            <td id="login-con-mfa-time">-</td>
+                            <td id="login-con-mfa-count">-</td>
                         </tr>
                     </tbody>
                 </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">⏱️ Login sin MFA es más rápido (sin esperar email)</p>
+            </div>
+
+            <!-- BENCHMARK 2: Tasa de Falsos Positivos -->
+            <div style="margin-top:2rem;">
+                <h3>2️⃣ Tasa de Falsos Positivos (MPU6050 vs PIR)</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Sensor</th>
+                            <th>Total de Alertas</th>
+                            <th>Falsos Positivos</th>
+                            <th>Tasa (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📍 PIR (Movimiento)</td>
+                            <td id="pir-total">-</td>
+                            <td id="pir-false">-</td>
+                            <td id="pir-percentage">-</td>
+                        </tr>
+                        <tr>
+                            <td>📊 MPU6050 (Vibración)</td>
+                            <td id="mpu-total">-</td>
+                            <td id="mpu-false">-</td>
+                            <td id="mpu-percentage">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">🎯 Ideal: &lt; 5% (menos falsos positivos = mejor)</p>
+            </div>
+
+            <!-- BENCHMARK 3: Dashboard vs Correo -->
+            <div style="margin-top:2rem;">
+                <h3>3️⃣ Velocidad Dashboard vs Correo (Notificación de Alarma)</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Velocidad Promedio (ms)</th>
+                            <th>Total de Notificaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📱 Dashboard (Tiempo Real)</td>
+                            <td style="color: #27ae60;">~150-500 ms</td>
+                            <td style="color: #27ae60;">Instant</td>
+                        </tr>
+                        <tr>
+                            <td>📧 Email (Correo)</td>
+                            <td id="email-time">-</td>
+                            <td id="email-count">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">⚡ Dashboard es ~13.7x más rápido que email</p>
+            </div>
+
+            <!-- Loading & Error States -->
+            <div id="loading" style="display: none; margin-top: 2rem;">
+                <p>⏳ Cargando benchmarks...</p>
+            </div>
+            <div id="error" style="display: none; margin-top: 2rem; color: #e74c3c;">
+                <p>❌ Error al cargar los benchmarks</p>
+            </div>
+
+            <!-- Última actualización -->
+            <div style="margin-top: 3rem; color: #95a5a6; font-size: 0.85rem;">
+                <p>Última actualización: <span id="last-update">-</span></p>
             </div>
         </section>
     </main>

@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const { sendAlertEmail } = require('../services/emailService');
+const { sendAlertEmail, sendMFACode } = require('../services/emailService');
+const benchmarkService = require('../Benchmark/benchmarkService');
 
 // Importar database con manejo de errores
 let db = null;
@@ -61,7 +62,7 @@ router.post('/auth/login', async (req, res) => {
             try {
                 console.log('🔍 Buscando usuario en base de datos...');
                 const result = await db.pool.query(
-                    'SELECT id, username, password, role, email, created_at FROM users WHERE username = $1',
+                    'SELECT id, username, password, role, email, mfa_enabled, created_at FROM users WHERE username = $1',
                     [username]
                 );
                 if (result.rows.length > 0) {
@@ -73,6 +74,7 @@ router.post('/auth/login', async (req, res) => {
                             username: dbUser.username,
                             role: dbUser.role,
                             email: dbUser.email,
+                            mfa_enabled: dbUser.mfa_enabled || false,
                             created_at: dbUser.created_at
                         };
                         console.log('✅ Usuario autenticado desde base de datos');
@@ -86,6 +88,51 @@ router.post('/auth/login', async (req, res) => {
             await logLoginAttempt(username, true, req.ip);
             const duration = Date.now() - start;
             console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
+            
+            // Si el usuario tiene MFA, no retornar success aún, esperar verificación
+            if (user.mfa_enabled) {
+                console.log(`🔐 Usuario ${username} tiene MFA habilitado, requiriendo código...`);
+                // Generar código MFA
+                const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
+                mfaCodes[user.email] = { code: mfaCode, expiresAt, username, hashedPassword: '', role: user.role, loginStartTime: start };
+                
+                // Enviar email con código
+                const emailStart = Date.now();
+                try {
+                    await sendMFACode(user.email, mfaCode);
+                    const emailTime = Date.now() - emailStart;
+                    
+                    // Guardar benchmark de email
+                    await benchmarkService.saveEmailBenchmark({
+                        email_type: 'mfa_code_login',
+                        time_ms: emailTime
+                    });
+                    
+                    return res.json({
+                        success: false,
+                        message: 'Este usuario requiere autenticación MFA',
+                        mfaRequired: true,
+                        email: user.email,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (emailErr) {
+                    console.error('❌ Error enviando MFA:', emailErr);
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Error enviando código MFA'
+                    });
+                }
+            }
+            
+            // Login sin MFA - guardar benchmark
+            await benchmarkService.saveAuthBenchmark({
+                metric_type: 'login',
+                mfa: false,
+                time_ms: duration,
+                username: username
+            });
+            
             return res.json({
                 success: true,
                 message: 'Login exitoso',
@@ -186,13 +233,7 @@ router.post('/auth/register', async (req, res) => {
             const startMail = Date.now();
             try {
                 // Usar emailService para enviar el código de verificación
-                await sendAlertEmail(email, {
-                    event_type: 'mfa_register',
-                    sensor_type: 'registro',
-                    timestamp: Date.now(),
-                    device_id: 'web',
-                    mfaCode
-                });
+                await sendMFACode(email, mfaCode);
                 const mailTimeMs = Date.now() - startMail;
                 console.log(`📧 Código MFA enviado a ${email}: ${mfaCode}`);
                 console.log(`⏱️ Tiempo en enviar correo: ${mailTimeMs} ms`);
@@ -212,11 +253,11 @@ router.post('/auth/register', async (req, res) => {
                 });
             }
         } else {
-            // Registro simple
+            // Registro simple (sin MFA)
             try {
                 const result = await db.pool.query(
-                    `INSERT INTO users (username, password, email, role, active, created_at)
-                     VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
+                    `INSERT INTO users (username, password, email, role, active, mfa_enabled, created_at)
+                     VALUES ($1, $2, $3, $4, true, false, CURRENT_TIMESTAMP)
                      RETURNING id, username, email, role, created_at`,
                     [username, hashedPassword, email, role]
                 );
@@ -232,6 +273,7 @@ router.post('/auth/register', async (req, res) => {
                         created_at: result.rows[0].created_at
                     },
                     mfaRequired: false,
+                    mfa_enabled: false,
                     registerTimeMs
                 });
             } catch (err) {
@@ -288,13 +330,53 @@ router.post('/auth/verify-mfa', async (req, res) => {
         });
     }
     
+    const loginStartTime = mfa.loginStartTime;
     delete mfaCodes[email];
-    const duration = Date.now() - start;
+    const totalDuration = loginStartTime ? Date.now() - loginStartTime : Date.now() - start;
+    
+    // Buscar usuario por email para retornar sus datos
+    let user = null;
+    if (db && db.isAvailable && db.pool) {
+        try {
+            const result = await db.pool.query(
+                'SELECT id, username, password, role, email, created_at FROM users WHERE email = $1',
+                [email]
+            );
+            if (result.rows.length > 0) {
+                const dbUser = result.rows[0];
+                user = {
+                    id: dbUser.id,
+                    username: dbUser.username,
+                    role: dbUser.role,
+                    email: dbUser.email,
+                    created_at: dbUser.created_at
+                };
+            }
+        } catch (dbError) {
+            console.log('❌ Error en base de datos durante verify-mfa:', dbError.message);
+        }
+    }
+    
+    // Guardar benchmark de login CON MFA (tiempo total desde el primer POST /login)
+    if (user) {
+        console.log(`⏱️ Tiempo total de login CON MFA para ${user.username}: ${totalDuration} ms`);
+        await benchmarkService.saveAuthBenchmark({
+            metric_type: 'login',
+            mfa: true,
+            time_ms: totalDuration,
+            username: user.username
+        });
+    }
     
     return res.json({ 
         success: true, 
         message: 'Autenticación completada.',
-        tiempo: duration 
+        user: user ? {
+            username: user.username,
+            role: user.role,
+            email: user.email
+        } : null,
+        tiempo: totalDuration 
     });
 });
 
@@ -335,8 +417,8 @@ router.post('/auth/verify-mfa-register', async (req, res) => {
     try {
         const startRegister = Date.now();
         const result = await db.pool.query(
-            `INSERT INTO users (username, password, email, role, active, created_at)
-             VALUES ($1, $2, $3, $4, true, CURRENT_TIMESTAMP)
+            `INSERT INTO users (username, password, email, role, active, mfa_enabled, created_at)
+             VALUES ($1, $2, $3, $4, true, true, CURRENT_TIMESTAMP)
              RETURNING id, username, email, role, created_at`,
             [mfa.username, mfa.hashedPassword, email, mfa.role]
         );
@@ -354,6 +436,7 @@ router.post('/auth/verify-mfa-register', async (req, res) => {
                 role: result.rows[0].role,
                 created_at: result.rows[0].created_at
             },
+            mfa_enabled: true,
             registerTimeMs
         });
     } catch (err) {
@@ -366,6 +449,58 @@ router.post('/auth/verify-mfa-register', async (req, res) => {
 });
 
 // ==================== OTROS ENDPOINTS ====================
+
+/**
+ * GET /auth/check-mfa/:username
+ * Verifica si un usuario tiene MFA habilitado
+ */
+router.get('/auth/check-mfa/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+
+        if (!username) {
+            return res.status(400).json({
+                success: false,
+                message: 'Usuario requerido'
+            });
+        }
+
+        if (!db || !db.isAvailable || !db.pool) {
+            return res.status(503).json({
+                success: false,
+                message: 'Base de datos no disponible'
+            });
+        }
+
+        const result = await db.pool.query(
+            'SELECT mfa_enabled FROM users WHERE username = $1',
+            [username]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Usuario no encontrado'
+            });
+        }
+
+        const mfaEnabled = result.rows[0].mfa_enabled || false;
+
+        res.json({
+            success: true,
+            username: username,
+            mfa_enabled: mfaEnabled,
+            message: mfaEnabled ? 'Este usuario tiene MFA habilitado' : 'Este usuario NO tiene MFA'
+        });
+    } catch (error) {
+        console.error('❌ Error verificando MFA:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error verificando estado de MFA'
+        });
+    }
+});
+
 router.get('/auth/verify', (req, res) => {
     res.json({
         success: true,
