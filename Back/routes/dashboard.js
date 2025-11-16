@@ -191,4 +191,84 @@ router.get('/dashboard', async (req, res) => {
     }
 });
 
+// ==================== LIMPIAR DATOS DE BENCHMARKS ====================
+router.post('/dashboard/clear-data', async (req, res) => {
+    try {
+        if (!db || !db.isAvailable || !db.pool) {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Base de datos no disponible' 
+            });
+        }
+
+        const { dataType } = req.body;
+
+        // Opción 1: Limpiar todo
+        if (dataType === 'all' || !dataType) {
+            await db.pool.query('DELETE FROM benchmark_metrics');
+            await db.pool.query('DELETE FROM email_metrics');
+            await db.pool.query('DELETE FROM device_events');
+            await db.pool.query('DELETE FROM login_attempts');
+
+            console.log('🗑️  Todos los datos han sido eliminados');
+            return res.json({
+                success: true,
+                message: 'Todos los datos han sido eliminados correctamente',
+                cleared: ['benchmark_metrics', 'email_metrics', 'device_events', 'login_attempts']
+            });
+        }
+
+        // Opción 2: Limpiar benchmarks solamente
+        if (dataType === 'benchmarks') {
+            await db.pool.query('DELETE FROM benchmark_metrics');
+            await db.pool.query('DELETE FROM email_metrics');
+
+            console.log('🗑️  Datos de benchmarks eliminados');
+            return res.json({
+                success: true,
+                message: 'Datos de benchmarks eliminados correctamente',
+                cleared: ['benchmark_metrics', 'email_metrics']
+            });
+        }
+
+        // Opción 3: Limpiar eventos de dispositivos
+        if (dataType === 'events') {
+            await db.pool.query('DELETE FROM device_events');
+
+            console.log('🗑️  Datos de eventos eliminados');
+            return res.json({
+                success: true,
+                message: 'Datos de eventos eliminados correctamente',
+                cleared: ['device_events']
+            });
+        }
+
+        // Opción 4: Limpiar intentos de login
+        if (dataType === 'login_attempts') {
+            await db.pool.query('DELETE FROM login_attempts');
+
+            console.log('🗑️  Datos de intentos de login eliminados');
+            return res.json({
+                success: true,
+                message: 'Datos de intentos de login eliminados correctamente',
+                cleared: ['login_attempts']
+            });
+        }
+
+        res.status(400).json({
+            success: false,
+            message: 'Tipo de datos inválido',
+            validTypes: ['all', 'benchmarks', 'events', 'login_attempts']
+        });
+
+    } catch (error) {
+        console.error('❌ Error limpiando datos:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al limpiar los datos',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
