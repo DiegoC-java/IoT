@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS device_events (
     sensor_type VARCHAR(50),
     timestamp TIMESTAMP NOT NULL,
     sensor_value INTEGER,
+    is_false_positive BOOLEAN DEFAULT NULL,
+    updated_at TIMESTAMP,
     additional_data JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,6 +65,41 @@ CREATE TABLE IF NOT EXISTS devices (
 GRANT ALL PRIVILEGES ON TABLE device_events TO iot_user;
 GRANT USAGE, SELECT ON SEQUENCE device_events_id_seq TO iot_user;
 GRANT ALL PRIVILEGES ON TABLE devices TO iot_user;
+
+-- ========================================================
+-- TABLAS PARA BENCHMARKS Y MÉTRICAS
+-- ========================================================
+
+-- Tabla para guardar métricas de login/registro
+CREATE TABLE IF NOT EXISTS benchmark_metrics (
+    id SERIAL PRIMARY KEY,
+    metric_type VARCHAR(50) NOT NULL,  -- 'login' o 'registro'
+    mfa BOOLEAN NOT NULL,               -- true si usa MFA, false sin MFA
+    time_ms NUMERIC(10,2) NOT NULL,    -- Tiempo en milisegundos
+    username VARCHAR(50),               -- Usuario que hizo la acción
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_benchmark_metrics_type ON benchmark_metrics(metric_type);
+CREATE INDEX idx_benchmark_metrics_mfa ON benchmark_metrics(mfa);
+CREATE INDEX idx_benchmark_metrics_timestamp ON benchmark_metrics(created_at DESC);
+
+-- Tabla para guardar tiempos de envío de email
+CREATE TABLE IF NOT EXISTS email_metrics (
+    id SERIAL PRIMARY KEY,
+    email_type VARCHAR(50) NOT NULL,    -- 'mfa_code', 'alert_email', etc
+    time_ms NUMERIC(10,2) NOT NULL,    -- Tiempo en milisegundos
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_email_metrics_type ON email_metrics(email_type);
+CREATE INDEX idx_email_metrics_timestamp ON email_metrics(created_at DESC);
+
+-- Dar permisos sobre las nuevas tablas de benchmarks
+GRANT ALL PRIVILEGES ON TABLE benchmark_metrics TO iot_user;
+GRANT USAGE, SELECT ON SEQUENCE benchmark_metrics_id_seq TO iot_user;
+GRANT ALL PRIVILEGES ON TABLE email_metrics TO iot_user;
+GRANT USAGE, SELECT ON SEQUENCE email_metrics_id_seq TO iot_user;
 
 -- Insertar usuarios de ejemplo con contraseñas hasheadas (bcrypt)
 -- Contraseñas originales: admin123, user123, demo123, operator123

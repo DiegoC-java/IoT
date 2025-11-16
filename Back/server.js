@@ -69,11 +69,13 @@ app.get('/api/health', async (req, res) => {
 const devicesRoutes = require('./routes/devices');
 const dashboardRoutes = require('./routes/dashboard');
 const authRoutes = require('./routes/auth');
+const benchmarkRoutes = require('./Benchmark/benchmarkRoutes');
 
 // Usar rutas
 app.use('/api', devicesRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', authRoutes);
+app.use('/api', benchmarkRoutes);
 
 // ========================================================
 // --- NUEVA RUTA PARA CONTROLAR LA ALARMA ---

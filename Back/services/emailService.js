@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config({ path: '../../.env' });// Asegúrate de que las variables de entorno se carguen
+const benchmarkService = require('../Benchmark/benchmarkService');
 
 // 1. Configurar el "transportador" de correo.
 //    Lee las credenciales de tu archivo .env
@@ -56,8 +57,19 @@ async function sendAlertEmail(recipientEmail, eventData) {
     try {
         if (!validateRecipient(recipientEmail)) return;
         const mailOptions = buildMailOptions(recipientEmail, eventData);
+        
+        const emailStart = Date.now();
         const info = await transporter.sendMail(mailOptions);
+        const emailTime = Date.now() - emailStart;
+        
         console.log(`✅ Correo de alerta enviado a ${recipientEmail}: ${info.messageId}`);
+        console.log(`⏱️ Tiempo de envío: ${emailTime}ms`);
+        
+        // Guardar benchmark de email
+        await benchmarkService.saveEmailBenchmark({
+            email_type: 'alert_email',
+            time_ms: emailTime
+        });
     } catch (error) {
         console.error('❌ Error enviando correo de alerta:', error);
     }
@@ -91,8 +103,18 @@ async function sendMFACode(recipientEmail, mfaCode) {
             `
         };
         
+        const emailStart = Date.now();
         const info = await transporter.sendMail(mailOptions);
+        const emailTime = Date.now() - emailStart;
+        
         console.log(`✅ Código MFA enviado a ${recipientEmail}: ${info.messageId}`);
+        console.log(`⏱️ Tiempo de envío: ${emailTime}ms`);
+        
+        // Guardar benchmark de email
+        await benchmarkService.saveEmailBenchmark({
+            email_type: 'mfa_code',
+            time_ms: emailTime
+        });
     } catch (error) {
         console.error('❌ Error enviando código MFA:', error);
     }

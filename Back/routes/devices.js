@@ -3,6 +3,7 @@ const router = express.Router();
 
 // Importar el servicio de correo
 const { sendAlertEmail } = require('../services/emailService');
+const benchmarkService = require('../Benchmark/benchmarkService');
 
 const { pool } = require('../database');
 console.log('routes/devices loaded — pool available:', !!pool);
