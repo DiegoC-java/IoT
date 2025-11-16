@@ -507,6 +507,23 @@ GET /api/devices/ESP32_ALARM_01/events?limit=10&offset=0
 <a name="changelog"></a>
 ## 5️⃣ REGISTRO DE CAMBIOS
 
+### 📅 Versión 3.1 - Ajustes UI Benchmarks (Noviembre 2025)
+
+#### ✅ Mejoras recientes
+
+1. **Hero de Benchmarks alineado con Historial de alertas**
+  - Se eliminó el bloque de controles redundante del hero de benchmarks para reutilizar únicamente los controles superiores globales.
+  - Se removió la etiqueta de "Última actualización" en el hero para evitar duplicar información que ya aparece en la barra superior.
+2. **Lectura optimizada**
+  - El subtítulo del hero ahora se fuerza a una sola línea con elipsis para impedir saltos y mantener consistencia visual.
+  - Se ajustó el contraste del texto para que coincida con la tarjeta del historial de alertas.
+3. **KPIs más descriptivos**
+  - La tarjeta principal del dashboard ahora se muestra como "Alertas detectadas hoy" para aclarar que el valor corresponde al conteo diario.
+4. **Conteo diario real**
+  - El endpoint `GET /api/events/count` ahora acepta `today=true` para regresar solo las alertas registradas desde el inicio del día, y el dashboard usa este filtro para mantener el KPI sincronizado con la fecha actual.
+5. **Tiempos relativos pulidos**
+  - Las funciones que muestran "Hace X tiempo" ahora forzan un mínimo de 0 segundos para evitar el estado intermedio "En el futuro" cuando llega una alerta nueva.
+
 ### 📅 Versión 3.0 - Integración ESP32 (Octubre 2025)
 
 #### ✅ Nuevas Funcionalidades:

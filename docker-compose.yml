@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: iot_postgres
-    restart: always
+    restart: no
     environment:
       POSTGRES_DB: iot_dashboard
       POSTGRES_USER: iot_user
@@ -23,7 +23,7 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: iot_pgadmin
-    restart: always
+    restart: no
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin123

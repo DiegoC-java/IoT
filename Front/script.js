@@ -347,7 +347,7 @@ async function loadData() {
         // Obtener conteo de eventos recientes (últimas 24 horas)
         let eventsCount = 0;
         try {
-            const eventsResponse = await fetch('http://localhost:3000/api/events/count?hours=24');
+            const eventsResponse = await fetch('http://localhost:3000/api/events/count?today=true');
             if (eventsResponse.ok) {
                 const eventsResult = await eventsResponse.json();
                 eventsCount = eventsResult.count || 0;
@@ -356,15 +356,20 @@ async function loadData() {
             console.warn('No se pudo obtener el conteo de eventos:', e.message);
         }
 
+        const devicesWithIndex = (result.data || []).map((device, index) => ({
+            ...device,
+            displayId: index + 1
+        }));
+
         // Actualizar datos globales
         currentData = {
-            devices: result.data || [],
+            devices: devicesWithIndex,
             kpis: {
                 systemStatus: { 
-                    current: result.data.length > 0 ? 'Activo' : 'Sin dispositivos' 
+                    current: devicesWithIndex.length > 0 ? 'Activo' : 'Sin dispositivos' 
                 },
                 activeDevices: { 
-                    current: result.data.filter(d => d.status === 'online').length 
+                    current: devicesWithIndex.filter(d => d.status === 'online').length 
                 },
                 alerts: { 
                     current: eventsCount
@@ -435,6 +440,10 @@ async function loadDataFallback() {
             recentEvents: { current: 0 }
         }
     };
+
+    currentData.devices.forEach((device, index) => {
+        device.displayId = index + 1;
+    });
 
     // Actualizar UI con datos de respaldo
     updateKPIs();
@@ -595,24 +604,21 @@ function populateDevicesTable() {
     
     tbody.innerHTML = '';
     
-    currentData.devices.forEach(device => {
+    currentData.devices.forEach((device, index) => {
+        const displayId = device.displayId ?? (index + 1);
+        const lastReadingIso = device.lastReading || device.last_reading;
+        const lastReading = formatDateTime(lastReadingIso);
+        const relativeTime = formatRelativeTime(lastReadingIso);
         const row = tbody.insertRow();
         
         row.innerHTML = `
-            <td>${device.id}</td>
-            <td>${device.name}</td>
-            <td>${device.type}</td>
-            <td><span class="status-badge status-${device.status}">${getStatusText(device.status)}</span></td>
-            <td>${device.lastReading}</td>
-            <td>${device.value}${device.unit || getUnitForDevice(device.type)}</td>
+            <td>${displayId}</td>
             <td>
-                <button class="btn-action" onclick="viewDevice('${device.id}')">
-                    <i class="fas fa-eye"></i> Ver
-                </button>
-                <button class="btn-action" onclick="editDevice('${device.id}')">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
+                <div class="device-name">${device.name}</div>
             </td>
+            <td><span class="status-badge status-${device.status}">${getStatusText(device.status)}</span></td>
+            <td>${lastReading}</td>
+            <td>${relativeTime}</td>
         `;
     });
     
@@ -630,12 +636,61 @@ function getStatusText(status) {
 }
 
 // Obtener unidad para tipo de dispositivo
-function getUnitForDevice(type) {
-    if (type.includes('Temperatura')) return '°C';
-    if (type.includes('Humedad')) return '%';
-    if (type.includes('Presión')) return 'hPa';
-    if (type.includes('Luz')) return 'lux';
+function getUnitForDevice(type = '') {
+    if (!type || typeof type !== 'string') return '';
+    const normalized = type.toLowerCase();
+    if (normalized.includes('temperatura')) return '°C';
+    if (normalized.includes('humedad')) return '%';
+    if (normalized.includes('presión') || normalized.includes('presion')) return 'hPa';
+    if (normalized.includes('luz')) return 'lux';
+    if (normalized.includes('pir')) return 'det';
     return '';
+}
+
+function formatDateTime(value) {
+    if (!value) return 'Sin registros';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return date.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function formatRelativeTime(value) {
+    if (!value) return 'Sin registros';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return 'Sin registros';
+    }
+    const diffMs = Math.max(0, Date.now() - date.getTime());
+
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return `hace ${seconds}s`;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `hace ${minutes}m`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours}h`;
+
+    const days = Math.floor(hours / 24);
+    return `hace ${days}d`;
+}
+
+function formatDeviceValue(device) {
+    if (!device) return '—';
+    const rawValue = (device.value ?? device.lastValue ?? null);
+    if (rawValue === null || rawValue === undefined || rawValue === 'null') {
+        return '—';
+    }
+    const unit = device.unit || getUnitForDevice(device.type || '');
+    return `${rawValue}${unit ? ' ' + unit : ''}`;
 }
 
 // Configurar event listeners
@@ -806,9 +861,10 @@ async function viewDevice(deviceId) {
             const result = await response.json();
             if (result.success) {
                 const device = result.data;
-                const lastReading = new Date(device.last_reading).toLocaleString('es-ES');
-                
-                alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${device.value || 'N/A'} ${device.unit || ''}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
+                const lastReading = formatDateTime(device.last_reading || device.lastReading);
+                const valueLabel = formatDeviceValue(device);
+
+                alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${valueLabel}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
                 return;
             }
         }
@@ -819,7 +875,9 @@ async function viewDevice(deviceId) {
     // Fallback a datos locales
     const device = currentData.devices.find(d => d.id === deviceId);
     if (device) {
-        alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location || 'No especificada'}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${device.value} ${device.unit || ''}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${device.lastReading}`);
+        const lastReading = formatDateTime(device.lastReading || device.last_reading);
+        const valueLabel = formatDeviceValue(device);
+        alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location || 'No especificada'}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${valueLabel}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
     } else {
         alert('❌ Dispositivo no encontrado');
     }

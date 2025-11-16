@@ -1,70 +1,46 @@
-/* Fondo especial para benchmarks */
-body {
+
+.benchmarks-page {
     background: radial-gradient(circle at 50% 30%, #3b5998 0%, #23395d 70%, #1e293b 100%);
     min-height: 100vh;
-    font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-.header {
-    background: rgba(30,41,59,0.95);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(30,41,59,0.12);
-    padding: 1.5rem 0 1rem 0;
-    border-bottom-left-radius: 24px;
-    border-bottom-right-radius: 24px;
+.benchmark-hero {
+    margin-bottom: 1.5rem;
 }
-.header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 900px;
-    margin: 0 auto;
-}
-.logo h1 {
-    font-size: 2.3rem;
-    font-weight: 700;
+
+.benchmark-hero-copy .eyebrow {
     color: #60a5fa;
-    margin-left: 0.5rem;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 8px #2563eb44;
-}
-.header-controls a {
-    color: #fff;
-    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
-    padding: 0.6rem 1.4rem;
-    border-radius: 12px;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 1.05rem;
-    box-shadow: 0 2px 8px #2563eb22;
-    transition: background 0.2s, box-shadow 0.2s;
-}
-.header-controls a:hover {
-    background: linear-gradient(90deg, #60a5fa 0%, #2563eb 100%);
-    box-shadow: 0 4px 16px #2563eb44;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
 }
 
-.main-content {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
+.benchmark-hero-copy h2 {
+    font-size: 1.85rem;
+    color: #f8fafc;
+    margin-bottom: 0.25rem;
 }
-.main-content h2 {
-    color: #1e293b;
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 8px #2563eb22;
+
+.benchmark-hero-copy .subtitle {
+    color: #cbd5f5;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.main-content h3 {
-    color: #2563eb;
-    font-size: 1.35rem;
-    font-weight: 600;
-    margin-bottom: 0.7rem;
-    margin-top: 2.2rem;
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 8px #2563eb22;
+
+
+.benchmark-section {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.benchmark-section h3 {
+    color: #60a5fa;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    margin-top: 2rem;
 }
 
 
@@ -117,13 +93,15 @@ body {
     .bench-table {
         width: 98% !important;
     }
-    .main-content {
-        padding: 1rem 0.2rem;
+    .benchmark-hero {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
     }
-    .main-content h2 {
-        font-size: 1.3rem;
+    .benchmark-hero h2 {
+        font-size: 1.4rem;
     }
-    .main-content h3 {
+    .benchmark-section h3 {
         font-size: 1.05rem;
     }
     .bench-table th, .bench-table td {

@@ -4,8 +4,6 @@ const API_URL = 'http://localhost:3000/api';
 // Elementos del DOM
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
-const lastUpdateSpan = document.getElementById('last-update');
-const refreshBtn = document.getElementById('refresh-btn');
 
 /**
  * Obtiene los benchmarks del servidor
@@ -128,7 +126,7 @@ function updateLastUpdateTime() {
         minute: '2-digit',
         second: '2-digit'
     });
-    if (lastUpdateSpan) lastUpdateSpan.textContent = timeString;
+    updateBenchmarkHeaderLastUpdate(now);
 }
 
 /**
@@ -161,17 +159,10 @@ async function markEventAsFalsePositive(eventId, isFalse) {
 
 // ========== EVENT LISTENERS ==========
 
-// Botón actualizar
-if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-        console.log('🔄 Actualizando benchmarks...');
-        loadBenchmarks();
-    });
-}
-
 // Cargar benchmarks al iniciar
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📊 Inicializando página de benchmarks...');
+    initializeBenchmarkChrome();
     loadBenchmarks();
     
     // Actualizar cada 30 segundos automáticamente
@@ -183,3 +174,46 @@ window.benchmarkModule = {
     loadBenchmarks,
     markEventAsFalsePositive
 };
+
+function updateBenchmarkHeaderLastUpdate(date) {
+    const chip = document.getElementById('pageLastUpdate');
+    if (!chip) return;
+    chip.innerHTML = `<i class="fas fa-clock"></i> Última actualización: ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+}
+
+function initializeBenchmarkChrome() {
+    updateBenchmarkDateTime();
+    setInterval(updateBenchmarkDateTime, 60000);
+
+    const logoutBtn = document.getElementById('pageLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('iot_user');
+            localStorage.removeItem('iot_login_time');
+            window.location.href = 'login.html';
+        });
+    }
+
+    const refreshBtn = document.getElementById('pageRefreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            console.log('🔄 Actualizando benchmarks...');
+            loadBenchmarks();
+        });
+    }
+
+}
+
+function updateBenchmarkDateTime() {
+    const chip = document.getElementById('pageDateTime');
+    if (!chip) return;
+    const now = new Date();
+    chip.textContent = now.toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
