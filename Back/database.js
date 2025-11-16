@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const path = require('path');
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 class DatabaseManager {
   constructor() {
