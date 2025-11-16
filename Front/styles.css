@@ -418,6 +418,19 @@ body {
     color: white;
 }
 
+.kpi-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    outline: none;
+    border: none;
+}
+
 .kpi-card:nth-child(1) .kpi-icon {
     background: linear-gradient(135deg, #f59e0b, #d97706);
 }

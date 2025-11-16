@@ -132,6 +132,7 @@ void sendMotionEvent() {
   if (!wifiConnected) return;
   HTTPClient http;
   http.begin(BACKEND_URL);
+  http.setTimeout(1000); // Timeout de 1 segundo
   http.addHeader("Content-Type", "application/json");
   StaticJsonDocument<256> doc;
   doc["device_id"] = DEVICE_ID;
@@ -151,6 +152,7 @@ void sendVibrationEvent(float accelValue) {
   if (!wifiConnected) return;
   HTTPClient http;
   http.begin(BACKEND_URL);
+  http.setTimeout(1000); // Timeout de 1 segundo
   http.addHeader("Content-Type", "application/json");
   StaticJsonDocument<256> doc;
   doc["device_id"] = DEVICE_ID;

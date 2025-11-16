@@ -344,6 +344,18 @@ async function loadData() {
             throw new Error(result.message || 'Error en la respuesta del servidor');
         }
 
+        // Obtener conteo de eventos recientes (últimas 24 horas)
+        let eventsCount = 0;
+        try {
+            const eventsResponse = await fetch('http://localhost:3000/api/events/count?hours=24');
+            if (eventsResponse.ok) {
+                const eventsResult = await eventsResponse.json();
+                eventsCount = eventsResult.count || 0;
+            }
+        } catch (e) {
+            console.warn('No se pudo obtener el conteo de eventos:', e.message);
+        }
+
         // Actualizar datos globales
         currentData = {
             devices: result.data || [],
@@ -355,10 +367,10 @@ async function loadData() {
                     current: result.data.filter(d => d.status === 'online').length 
                 },
                 alerts: { 
-                    current: result.data.filter(d => d.status === 'warning').length 
+                    current: eventsCount
                 },
                 recentEvents: { 
-                    current: 0  // Update this based on your events logic
+                    current: eventsCount
                 }
             }
         };

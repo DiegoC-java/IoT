@@ -223,7 +223,7 @@ router.get('/events/latest', async (req, res) => {
     try {
         if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
 
-        const result = await pool.query('SELECT * FROM device_events ORDER BY timestamp DESC LIMIT 1');
+        const result = await pool.query('SELECT * FROM device_events ORDER BY id DESC LIMIT 1');
 
         if (result.rows.length === 0) {
             return res.json({ success: true, message: 'No hay eventos recientes', data: null });
@@ -231,6 +231,24 @@ router.get('/events/latest', async (req, res) => {
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Error obteniendo el último evento:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// GET - Contar eventos recientes (últimas 24 horas por defecto)
+router.get('/events/count', async (req, res) => {
+    try {
+        if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
+
+        const hours = parseInt(req.query.hours) || 24;
+        const result = await pool.query(
+            'SELECT COUNT(*) as count FROM device_events WHERE timestamp > NOW() - INTERVAL \'1 hour\' * $1',
+            [hours]
+        );
+
+        res.json({ success: true, count: parseInt(result.rows[0].count) || 0 });
+    } catch (error) {
+        console.error('Error contando eventos:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 });
