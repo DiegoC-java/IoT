@@ -335,14 +335,34 @@ router.get('/events/count', async (req, res) => {
     try {
         if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
 
+        const parseDate = (value) => {
+            if (!value) return null;
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        };
+
+        const startDate = parseDate(req.query.start);
+        const endDate = parseDate(req.query.end);
         const countToday = String(req.query.today).toLowerCase() === 'true';
-        let query = 'SELECT COUNT(*) as count FROM device_events WHERE timestamp >= date_trunc(\'day\', NOW())';
+        let query = '';
         let params = [];
 
-        if (!countToday) {
-            const hours = parseInt(req.query.hours) || 24;
+        if (startDate && endDate) {
+            if (endDate <= startDate) {
+                return res.status(400).json({ success: false, message: 'El parámetro "end" debe ser mayor que "start"' });
+            }
+            query = 'SELECT COUNT(*) as count FROM device_events WHERE timestamp >= $1 AND timestamp <= $2';
+            params = [startDate, endDate];
+        } else if (countToday) {
+            query = `SELECT COUNT(*) as count
+                     FROM device_events
+                     WHERE timestamp >= date_trunc('day', NOW())
+                     AND timestamp < date_trunc('day', NOW()) + INTERVAL '1 day'`;
+        } else {
+            const hours = parseInt(req.query.hours, 10);
+            const safeHours = Number.isNaN(hours) ? 24 : Math.max(1, hours);
             query = 'SELECT COUNT(*) as count FROM device_events WHERE timestamp >= NOW() - INTERVAL \'1 hour\' * $1';
-            params = [hours];
+            params = [safeHours];
         }
 
         const result = await pool.query(query, params);

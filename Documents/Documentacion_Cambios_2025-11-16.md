@@ -15,7 +15,7 @@
 3. **Endpoint `GET /devices/:id`**
    - Replica el mismo `JOIN LATERAL`, proporcionando detalle sincronizado cuando se consulta un dispositivo puntual.
 4. **Conteo diario de alertas**
-   - Se amplió `GET /api/events/count` con el parámetro `today=true`, que usa `date_trunc('day', NOW())` para devolver únicamente los eventos del día en curso, manteniendo la compatibilidad con `hours`.
+   - `GET /api/events/count` ahora acepta parámetros `start` y `end` (ISO 8601) para contar exactamente el rango enviado —el dashboard envía el inicio y fin del día local—, manteniendo `today=true` como opción retrocompatible y `hours` para ventanas relativas.
 
 ## Frontend
 ### `Front/index.html`
@@ -32,7 +32,7 @@
    - `formatDeviceValue()` y mejoras en `getUnitForDevice()` estandarizan la presentación en tooltips/alertas.
 3. **Carga y KPIs**
    - Al recibir datos del backend se calculan `displayId`, conteos de dispositivos activos y se reutiliza esa estructura para KPIs y gráficas.
-   - El KPI de alertas consulta `GET /api/events/count?today=true` para reflejar únicamente el volumen del día actual.
+   - El KPI de alertas invoca `GET /api/events/count?start=...&end=...` pasando el inicio y fin del día actual calculado en el navegador, asegurando que la cifra corresponda al huso horario del usuario.
 4. **Gráfico de estado dinámico**
    - `updateDevicesChart()` vuelve a contar los dispositivos `online/offline/warning` en cada refresco y redibuja el gráfico donut, dejando claro en segundos si algún sensor perdió conexión.
 5. **Tiempos relativos pulidos**

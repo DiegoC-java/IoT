@@ -347,7 +347,16 @@ async function loadData() {
         // Obtener conteo de eventos recientes (últimas 24 horas)
         let eventsCount = 0;
         try {
-            const eventsResponse = await fetch('http://localhost:3000/api/events/count?today=true');
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+            const params = new URLSearchParams({
+                start: startOfDay.toISOString(),
+                end: endOfDay.toISOString()
+            });
+
+            const eventsResponse = await fetch(`http://localhost:3000/api/events/count?${params.toString()}`);
             if (eventsResponse.ok) {
                 const eventsResult = await eventsResponse.json();
                 eventsCount = eventsResult.count || 0;

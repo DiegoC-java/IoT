@@ -520,7 +520,7 @@ GET /api/devices/ESP32_ALARM_01/events?limit=10&offset=0
 3. **KPIs más descriptivos**
   - La tarjeta principal del dashboard ahora se muestra como "Alertas detectadas hoy" para aclarar que el valor corresponde al conteo diario.
 4. **Conteo diario real**
-  - El endpoint `GET /api/events/count` ahora acepta `today=true` para regresar solo las alertas registradas desde el inicio del día, y el dashboard usa este filtro para mantener el KPI sincronizado con la fecha actual.
+  - El endpoint `GET /api/events/count` ahora acepta parámetros `start` y `end` en formato ISO para contar exactamente el rango enviado (ej. día local del usuario). Se mantiene `today=true` como respaldo, pero el dashboard envía explícitamente el rango `inicio de día → fin de día` para garantizar horarios correctos.
 5. **Tiempos relativos pulidos**
   - Las funciones que muestran "Hace X tiempo" ahora forzan un mínimo de 0 segundos para evitar el estado intermedio "En el futuro" cuando llega una alerta nueva.
 
