@@ -285,10 +285,10 @@ router.post('/events', async (req, res) => {
         }
 
         // Insertar evento en la base de datos con server_received_at para medir latencia
-        const serverReceivedAt = new Date().toISOString();
+        // Usar NOW() en PostgreSQL para capturar el timestamp exacto del servidor al recibir
         const eventResult = await pool.query(
-            'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp, server_received_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [device_id, event_type, sensor_type, sensor_value, timestamp, serverReceivedAt]
+            'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp, server_received_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *, server_received_at',
+            [device_id, event_type, sensor_type, sensor_value, timestamp]
         );
 
         // Notificación por correo

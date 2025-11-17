@@ -5,6 +5,7 @@ let devicesChart;
 let currentData = {};
 let isAlarmSystemArmed = true; // El sistema empieza armado por defecto
 let refreshInProgress = false; // evita solapado de peticiones
+let lastProcessedEventId = null; // Para rastrear qué eventos ya registramos latencia
 // Configuración de gráficos
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
@@ -12,7 +13,6 @@ Chart.defaults.color = '#64748b';
 // --- NUEVO: Función para buscar y actualizar el evento más reciente ---
 async function fetchLatestEvent() {
     try {
-        const clientReceivedAt = new Date().toISOString(); // Timestamp cuando frontend recibe
         const response = await fetch('http://localhost:3000/api/events/latest');
         if (!response.ok) {
             // No mostrar error en consola para no saturar, ya que se llama constantemente
@@ -22,15 +22,21 @@ async function fetchLatestEvent() {
         if (result.success && result.data) {
             updateRecentEventCard(result.data);
             
-            // Calcular latencia dashboard y enviarla al backend
-            if (result.data.server_received_at) {
-                const serverTime = new Date(result.data.server_received_at).getTime();
-                const clientTime = new Date(clientReceivedAt).getTime();
-                const latencyMs = clientTime - serverTime;
+            // Calcular latencia dashboard y enviarla al backend solo para eventos nuevos
+            if (result.data.server_received_at && result.data.id !== lastProcessedEventId) {
+                // Date.now() ya devuelve timestamp UTC (ms desde epoch)
+                const clientReceivedAt = Date.now();
+                const serverTimeUTC = new Date(result.data.server_received_at).getTime();
+                const latencyMs = clientReceivedAt - serverTimeUTC;
+                
+                console.log(`🕒 Calculando latencia - Cliente: ${new Date(clientReceivedAt).toISOString()}, Servidor: ${result.data.server_received_at}, Diff: ${latencyMs}ms`);
                 
                 // Solo enviar si la latencia es positiva y razonable (evitar errores de reloj)
                 if (latencyMs > 0 && latencyMs < 60000) {
                     recordDashboardLatency(result.data.id, latencyMs);
+                    lastProcessedEventId = result.data.id; // Marcar como procesado
+                } else {
+                    console.warn(`⚠️ Latencia fuera de rango (${latencyMs}ms) - no se registrará`);
                 }
             }
         } else {
@@ -45,14 +51,20 @@ async function fetchLatestEvent() {
 // Registrar latencia del dashboard en el backend
 async function recordDashboardLatency(eventId, latencyMs) {
     try {
-        await fetch('http://localhost:3000/api/events/record-latency', {
+        console.log(`📊 Registrando latencia dashboard: evento ${eventId}, ${latencyMs}ms`);
+        const response = await fetch('http://localhost:3000/api/events/record-latency', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ event_id: eventId, latency_ms: latencyMs })
         });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Error del servidor al registrar latencia: ${response.status} - ${errorText}`);
+        } else {
+            console.log('✅ Latencia registrada correctamente');
+        }
     } catch (error) {
-        // Silencioso para no afectar la experiencia
-        console.debug('Error registrando latencia:', error.message);
+        console.error('❌ Error registrando latencia:', error.message);
     }
 }
 
