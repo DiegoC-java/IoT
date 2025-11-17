@@ -12,6 +12,7 @@ Chart.defaults.color = '#64748b';
 // --- NUEVO: Función para buscar y actualizar el evento más reciente ---
 async function fetchLatestEvent() {
     try {
+        const clientReceivedAt = new Date().toISOString(); // Timestamp cuando frontend recibe
         const response = await fetch('http://localhost:3000/api/events/latest');
         if (!response.ok) {
             // No mostrar error en consola para no saturar, ya que se llama constantemente
@@ -20,12 +21,38 @@ async function fetchLatestEvent() {
         const result = await response.json();
         if (result.success && result.data) {
             updateRecentEventCard(result.data);
+            
+            // Calcular latencia dashboard y enviarla al backend
+            if (result.data.server_received_at) {
+                const serverTime = new Date(result.data.server_received_at).getTime();
+                const clientTime = new Date(clientReceivedAt).getTime();
+                const latencyMs = clientTime - serverTime;
+                
+                // Solo enviar si la latencia es positiva y razonable (evitar errores de reloj)
+                if (latencyMs > 0 && latencyMs < 60000) {
+                    recordDashboardLatency(result.data.id, latencyMs);
+                }
+            }
         } else {
             updateRecentEventCard(null); // No hay eventos
         }
     } catch (error) {
         // Ignorar errores de fetch para que el polling no se detenga
         console.error('Error en fetchLatestEvent:', error.message);
+    }
+}
+
+// Registrar latencia del dashboard en el backend
+async function recordDashboardLatency(eventId, latencyMs) {
+    try {
+        await fetch('http://localhost:3000/api/events/record-latency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId, latency_ms: latencyMs })
+        });
+    } catch (error) {
+        // Silencioso para no afectar la experiencia
+        console.debug('Error registrando latencia:', error.message);
     }
 }
 

@@ -107,10 +107,18 @@ async function getBenchmarkStats() {
              WHERE metric_type = 'login' AND mfa = true`
         );
 
-        // Email metrics
+        // Email metrics - Solo alertas (no códigos MFA)
         const emailMetrics = await db.pool.query(
             `SELECT AVG(time_ms) as avg_time, COUNT(*) as total
-             FROM email_metrics`
+             FROM email_metrics
+             WHERE email_type = 'alert_email'`
+        );
+
+        // Dashboard latency metrics - Tiempo de actualización dashboard
+        const dashboardLatency = await db.pool.query(
+            `SELECT AVG(latency_ms) as avg_latency, COUNT(*) as total
+             FROM dashboard_latency_metrics
+             WHERE recorded_at > NOW() - INTERVAL '7 days'`
         );
 
         // Falsos positivos por sensor
@@ -152,6 +160,10 @@ async function getBenchmarkStats() {
             email: {
                 avg_time: Math.round(emailMetrics.rows[0].avg_time || 0),
                 total: emailMetrics.rows[0].total || 0
+            },
+            dashboardLatency: {
+                avg_latency: Math.round(dashboardLatency.rows[0].avg_latency || 0),
+                total: dashboardLatency.rows[0].total || 0
             },
             falsePositives: {
                 PIR: {

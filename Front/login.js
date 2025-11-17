@@ -172,10 +172,21 @@ async function handleLogin(e) {
                 return;
             }
             
-            loginBtn.type = 'button'; // Cambiar a button para que no dispare submit
+            // Remover el event listener del formulario temporalmente
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.onsubmit = function(ev) {
+                    ev.preventDefault();
+                    handleMfaLogin(username, rememberMe);
+                    return false;
+                };
+            }
+            
+            loginBtn.type = 'button';
             loginBtn.textContent = 'Validar código';
             loginBtn.onclick = async function(ev) {
                 ev.preventDefault();
+                ev.stopPropagation();
                 await handleMfaLogin(username, rememberMe);
             };
             
@@ -333,13 +344,25 @@ async function handleSuccessfulLogin(user, rememberMe) {
     // Mostrar mensaje de éxito
     showAlert(`¡Bienvenido, ${user.username}!`, 'success');
     
-    // Restaurar botón a estado original
+    // Restaurar formulario a estado original
+    const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
+    
+    if (loginForm) {
+        loginForm.onsubmit = handleLogin;
+    }
+    
     if (loginBtn) {
-        loginBtn.type = 'submit'; // Restaurar a submit
+        loginBtn.type = 'submit';
         loginBtn.textContent = 'Iniciar Sesión';
         loginBtn.style.background = 'var(--success-color)';
-        loginBtn.onclick = null; // Limpiar onclick
+        loginBtn.onclick = null;
+    }
+    
+    // Ocultar campo MFA si estaba visible
+    const mfaGroup = document.getElementById('mfaGroup');
+    if (mfaGroup) {
+        mfaGroup.style.display = 'none';
     }
     
     // Redirigir después de un breve delay

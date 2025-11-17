@@ -8,6 +8,30 @@ const benchmarkService = require('../Benchmark/benchmarkService');
 const { pool } = require('../database');
 console.log('routes/devices loaded — pool available:', !!pool);
 
+// POST - Registrar latencia del dashboard
+router.post('/events/record-latency', async (req, res) => {
+    try {
+        const { event_id, latency_ms } = req.body;
+        
+        if (!event_id || typeof latency_ms !== 'number') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'event_id y latency_ms son requeridos' 
+            });
+        }
+
+        await pool.query(
+            'INSERT INTO dashboard_latency_metrics (event_id, latency_ms) VALUES ($1, $2)',
+            [event_id, latency_ms]
+        );
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error registrando latencia:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 // GET - Histograma de activaciones de alarma por hora
 router.get('/events/histograma-horas', async (req, res) => {
     try {
@@ -260,10 +284,11 @@ router.post('/events', async (req, res) => {
             console.error('❌ Error al upsertear device en /events:', upsertErr.message);
         }
 
-        // Insertar evento en la base de datos
+        // Insertar evento en la base de datos con server_received_at para medir latencia
+        const serverReceivedAt = new Date().toISOString();
         const eventResult = await pool.query(
-            'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [device_id, event_type, sensor_type, sensor_value, timestamp]
+            'INSERT INTO device_events (device_id, event_type, sensor_type, sensor_value, timestamp, server_received_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [device_id, event_type, sensor_type, sensor_value, timestamp, serverReceivedAt]
         );
 
         // Notificación por correo

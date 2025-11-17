@@ -213,6 +213,7 @@
         let mfaEmail = null;
         let mfaUsername = null;
         let mfaRememberMe = false;
+        let isProcessing = false; // Bandera para evitar múltiples envíos
 
         // ========== UTILIDADES ==========
         function showAlert(message, type = 'info') {
@@ -252,17 +253,32 @@
         function showCredentialsSection() {
             document.getElementById('credentialsSection').style.display = 'block';
             document.getElementById('mfaSection').style.display = 'none';
+            document.getElementById('mfaCode').value = ''; // Limpiar código anterior
         }
 
         function showMfaSection(email) {
             document.getElementById('credentialsSection').style.display = 'none';
             document.getElementById('mfaSection').style.display = 'block';
+            document.getElementById('mfaCode').value = ''; // Limpiar campo
             document.getElementById('mfaCode').focus();
         }
 
         // ========== MANEJO DEL LOGIN INICIAL ==========
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation(); // Evitar que el evento se propague
+            
+            // Si ya estamos procesando o estamos en modo MFA, ignorar
+            if (isProcessing) {
+                console.log('⚠️ Ya hay una petición en proceso, ignorando...');
+                return;
+            }
+            
+            // Si estamos en la sección MFA, no hacer nada (el botón de verificar maneja esto)
+            if (document.getElementById('mfaSection').style.display === 'block') {
+                console.log('⚠️ Estamos en sección MFA, ignorando submit del form');
+                return;
+            }
             
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
@@ -273,6 +289,7 @@
                 return;
             }
 
+            isProcessing = true;
             setLoadingState(true);
             hideAlert();
 
@@ -294,6 +311,8 @@
                     mfaRememberMe = rememberMe;
                     
                     showAlert(`✅ Código enviado a ${data.email}`, 'success');
+                    setLoadingState(false);
+                    isProcessing = false;
                     showMfaSection(data.email);
                     return;
                 }
@@ -319,11 +338,20 @@
                 showAlert(`Error: ${error.message}`, 'error');
             } finally {
                 setLoadingState(false);
+                isProcessing = false;
             }
         });
 
         // ========== MANEJO DE VERIFICACIÓN MFA ==========
-        document.getElementById('verifyMfaBtn').addEventListener('click', async () => {
+        document.getElementById('verifyMfaBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isProcessing) {
+                console.log('⚠️ Ya hay una verificación en proceso, ignorando...');
+                return;
+            }
+            
             const code = document.getElementById('mfaCode').value.trim();
 
             if (!code || code.length !== 6) {
@@ -331,7 +359,8 @@
                 return;
             }
 
-            setLoadingState(true);
+            isProcessing = true;
+            setLoadingState(true, true);
             hideAlert();
 
             try {
@@ -348,40 +377,78 @@
                 const data = await response.json();
                 console.log('📡 Respuesta de verificación:', data);
 
-                if (data.success) {
+                if (data.success && data.user) {
                     console.log('✅ Código válido - Login completado');
                     showAlert('✅ Login exitoso - Redirigiendo...', 'success');
+                    
+                    // Guardar sesión
                     localStorage.setItem('iot_user', JSON.stringify({
-                        username: mfaUsername,
+                        username: data.user.username,
                         role: data.user.role
                     }));
                     localStorage.setItem('iot_login_time', new Date().getTime().toString());
                     
-                    // Garantizar redirect después de guardar en localStorage
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    window.location.replace('index.html');
+                    // Limpiar variables MFA
+                    mfaEmail = null;
+                    mfaUsername = null;
+                    mfaRememberMe = false;
+                    
+                    // Deshabilitar botones para evitar doble submit
+                    document.getElementById('verifyMfaBtn').disabled = true;
+                    document.getElementById('backBtn').disabled = true;
+                    
+                    // NO liberar isProcessing - queremos bloquear todo hasta redirigir
+                    
+                    // Redirect después de un momento
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                     return;
                 }
 
+                // Si llegamos aquí, el código fue incorrecto
                 showAlert(data.message || 'Código incorrecto', 'error');
                 document.getElementById('mfaCode').value = '';
                 document.getElementById('mfaCode').focus();
+                setLoadingState(false);
+                isProcessing = false;
             } catch (error) {
                 console.error('❌ Error:', error);
                 showAlert(`Error: ${error.message}`, 'error');
-            } finally {
                 setLoadingState(false);
+                isProcessing = false;
             }
         });
 
         // ========== BOTÓN VOLVER ==========
-        document.getElementById('backBtn').addEventListener('click', () => {
+        document.getElementById('backBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Limpiar estado
             document.getElementById('mfaCode').value = '';
+            document.getElementById('password').value = ''; // Limpiar contraseña para seguridad
+            mfaEmail = null;
+            mfaUsername = null;
+            mfaRememberMe = false;
+            isProcessing = false;
+            
             showCredentialsSection();
             hideAlert();
+            setLoadingState(false);
         });
 
         // ========== OTROS EVENTOS ==========
+        // Prevenir que Enter en el campo MFA dispare el submit del form principal
+        document.getElementById('mfaCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                // Simular clic en el botón de verificar
+                document.getElementById('verifyMfaBtn').click();
+            }
+        });
+
         document.getElementById('togglePassword').addEventListener('click', (e) => {
             e.preventDefault();
             const password = document.getElementById('password');
