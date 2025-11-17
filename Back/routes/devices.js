@@ -48,7 +48,43 @@ const simulatedDevices = [
     },
 ];
 
+function buildSimulatedEvents() {
+    const now = Date.now();
+    return [
+        {
+            id: 'SIM-001',
+            device_id: 'DEV-001',
+            event_type: 'motion_detected',
+            sensor_type: 'pir',
+            sensor_value: 1,
+            timestamp: new Date(now - 2 * 60 * 1000).toISOString()
+        },
+        {
+            id: 'SIM-002',
+            device_id: 'DEV-002',
+            event_type: 'vibration_detected',
+            sensor_type: 'mpu6050',
+            sensor_value: 0.87,
+            timestamp: new Date(now - 7 * 60 * 1000).toISOString()
+        },
+        {
+            id: 'SIM-003',
+            device_id: 'DEV-001',
+            event_type: 'alarma_activada',
+            sensor_type: 'pir',
+            sensor_value: 1,
+            timestamp: new Date(now - 15 * 60 * 1000).toISOString()
+        }
+    ];
+}
+
 function mapRowToDevice(row) {
+    const lastReadingRaw = row.last_event_time || row.last_seen || row.updated_at || null;
+    const lastReadingIso = lastReadingRaw ? new Date(lastReadingRaw).toISOString() : null;
+    const lastValue = (row.last_event_value !== null && row.last_event_value !== undefined)
+        ? row.last_event_value
+        : (row.value ?? null);
+
     return {
         id: row.id,
         name: row.name || row.device_name || 'Sin nombre',
@@ -56,9 +92,12 @@ function mapRowToDevice(row) {
         location: row.location || row.ubicacion || 'N/A',
         status: (row.status || 'offline').toLowerCase(),
         battery: typeof row.battery === 'number' ? row.battery : (row.bateria || null),
-        value: row.value ?? null,
+        value: lastValue,
+        lastValue,
         unit: row.unit || null,
-        last_reading: row.last_seen || row.updated_at || new Date(),
+        last_reading: lastReadingIso,
+        lastReading: lastReadingIso,
+        lastEventType: row.last_event_type || null,
         created_at: row.created_at || null,
         updated_at: row.updated_at || null
     };
@@ -82,17 +121,30 @@ router.get('/devices', async (req, res) => {
         }
 
         // Build dynamic SQL with safe parameter bindings
-        let baseQuery = 'SELECT * FROM devices';
+        let baseQuery = `
+            SELECT d.*,
+                   last_event.timestamp AS last_event_time,
+                   last_event.sensor_value AS last_event_value,
+                   last_event.event_type AS last_event_type
+            FROM devices d
+            LEFT JOIN LATERAL (
+                SELECT timestamp, sensor_value, event_type
+                FROM device_events de
+                WHERE de.device_id = d.id
+                ORDER BY timestamp DESC
+                LIMIT 1
+            ) last_event ON TRUE
+        `;
         const conditions = [];
         const params = [];
 
         if (device_id) {
             params.push(device_id);
-            conditions.push(`id = $${params.length}`);
+            conditions.push(`d.id = $${params.length}`);
         }
 
         if (onlineOnly === 'true') {
-            conditions.push(`LOWER(status) = 'online'`);
+            conditions.push(`LOWER(d.status) = 'online'`);
         }
 
         if (recentMinutes) {
@@ -100,14 +152,17 @@ router.get('/devices', async (req, res) => {
             const mins = parseInt(recentMinutes, 10) || 5;
             const since = new Date(Date.now() - mins * 60 * 1000).toISOString();
             params.push(since);
-            conditions.push(`last_seen IS NOT NULL AND last_seen >= $${params.length}`);
+            conditions.push(`COALESCE(last_event.timestamp, d.last_seen) IS NOT NULL AND COALESCE(last_event.timestamp, d.last_seen) >= $${params.length}`);
         }
 
         const where = conditions.length ? (' WHERE ' + conditions.join(' AND ')) : '';
-        const finalQuery = `${baseQuery}${where} ORDER BY COALESCE(last_seen, created_at) DESC`;
+        const finalQuery = `${baseQuery}${where} ORDER BY COALESCE(last_event.timestamp, d.last_seen, d.created_at) DESC`;
 
         const result = await pool.query(finalQuery, params);
         const devices = result.rows.map(mapRowToDevice);
+        devices.forEach((device, index) => {
+            device.displayId = index + 1;
+        });
         res.json({ success: true, data: devices, count: devices.length, timestamp: new Date().toISOString() });
     } catch (err) {
         console.error('Unhandled error in /devices:', err);
@@ -123,7 +178,22 @@ router.get('/devices/:id', async (req, res) => {
             if (sim) return res.json({ success: true, data: sim });
             return res.status(404).json({ success: false, message: 'Device not found (no DB)' });
         }
-        const result = await pool.query('SELECT * FROM devices WHERE id = $1 LIMIT 1', [id]);
+        const result = await pool.query(`
+            SELECT d.*,
+                   last_event.timestamp AS last_event_time,
+                   last_event.sensor_value AS last_event_value,
+                   last_event.event_type AS last_event_type
+            FROM devices d
+            LEFT JOIN LATERAL (
+                SELECT timestamp, sensor_value, event_type
+                FROM device_events de
+                WHERE de.device_id = d.id
+                ORDER BY timestamp DESC
+                LIMIT 1
+            ) last_event ON TRUE
+            WHERE d.id = $1
+            LIMIT 1
+        `, [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'Device not found' });
         }
@@ -217,6 +287,31 @@ router.post('/events', async (req, res) => {
     }
 });
 
+// GET - Historial de eventos recientes
+router.get('/events/history', async (req, res) => {
+    try {
+        const limitParam = parseInt(req.query.limit, 10);
+        const limit = Number.isNaN(limitParam) ? 10 : Math.min(Math.max(limitParam, 1), 100);
+
+        if (!pool) {
+            const fallback = buildSimulatedEvents().slice(0, limit);
+            return res.json({ success: true, data: fallback, count: fallback.length, source: 'simulated' });
+        }
+
+        const result = await pool.query(`
+            SELECT id, device_id, event_type, sensor_type, sensor_value, timestamp
+            FROM device_events
+            ORDER BY timestamp DESC
+            LIMIT $1
+        `, [limit]);
+
+        res.json({ success: true, data: result.rows, count: result.rowCount, limit });
+    } catch (error) {
+        console.error('Error obteniendo historial de eventos:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
 
 // GET - Obtener el último evento para el dashboard (Sin cambios)
 router.get('/events/latest', async (req, res) => {
@@ -235,17 +330,22 @@ router.get('/events/latest', async (req, res) => {
     }
 });
 
-// GET - Contar eventos recientes (últimas 24 horas por defecto)
+// GET - Contar eventos recientes (hoy completo o últimas X horas)
 router.get('/events/count', async (req, res) => {
     try {
         if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
 
-        const hours = parseInt(req.query.hours) || 24;
-        const result = await pool.query(
-            'SELECT COUNT(*) as count FROM device_events WHERE timestamp > NOW() - INTERVAL \'1 hour\' * $1',
-            [hours]
-        );
+        const countToday = String(req.query.today).toLowerCase() === 'true';
+        let query = 'SELECT COUNT(*) as count FROM device_events WHERE timestamp >= date_trunc(\'day\', NOW())';
+        let params = [];
 
+        if (!countToday) {
+            const hours = parseInt(req.query.hours) || 24;
+            query = 'SELECT COUNT(*) as count FROM device_events WHERE timestamp >= NOW() - INTERVAL \'1 hour\' * $1';
+            params = [hours];
+        }
+
+        const result = await pool.query(query, params);
         res.json({ success: true, count: parseInt(result.rows[0].count) || 0 });
     } catch (error) {
         console.error('Error contando eventos:', error);

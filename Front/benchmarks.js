@@ -4,8 +4,6 @@ const API_URL = 'http://localhost:3000/api';
 // Elementos del DOM
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
-const lastUpdateSpan = document.getElementById('last-update');
-const refreshBtn = document.getElementById('refresh-btn');
 
 /**
  * Obtiene los benchmarks del servidor
@@ -128,7 +126,7 @@ function updateLastUpdateTime() {
         minute: '2-digit',
         second: '2-digit'
     });
-    if (lastUpdateSpan) lastUpdateSpan.textContent = timeString;
+    updateBenchmarkHeaderLastUpdate(now);
 }
 
 /**
@@ -161,144 +159,10 @@ async function markEventAsFalsePositive(eventId, isFalse) {
 
 // ========== EVENT LISTENERS ==========
 
-// Botón actualizar
-if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-        console.log('🔄 Actualizando benchmarks...');
-        loadBenchmarks();
-    });
-}
-
-/**
- * Función para mostrar modal de confirmación bonito
- */
-function showConfirmModal(title, message, onConfirm) {
-    return new Promise((resolve) => {
-        // Crear overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'confirm-modal-overlay';
-        
-        // Crear modal
-        const modal = document.createElement('div');
-        modal.className = 'confirm-modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <h2>${title}</h2>
-                </div>
-                <p class="modal-message">${message}</p>
-                <div class="modal-actions">
-                    <button class="btn-modal btn-cancel">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    <button class="btn-modal btn-confirm">
-                        <i class="fas fa-check"></i> Confirmar
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-        
-        const cancelBtn = modal.querySelector('.btn-cancel');
-        const confirmBtn = modal.querySelector('.btn-confirm');
-        
-        const close = () => {
-            overlay.classList.add('closing');
-            setTimeout(() => overlay.remove(), 300);
-        };
-        
-        cancelBtn.addEventListener('click', () => {
-            close();
-            resolve(false);
-        });
-        
-        confirmBtn.addEventListener('click', () => {
-            close();
-            resolve(true);
-        });
-        
-        // Cerrar con ESC
-        const handleEsc = (e) => {
-            if (e.key === 'Escape') {
-                document.removeEventListener('keydown', handleEsc);
-                close();
-                resolve(false);
-            }
-        };
-        document.addEventListener('keydown', handleEsc);
-        
-        // Trigger la animación de entrada
-        setTimeout(() => overlay.classList.add('active'), 10);
-    });
-}
-
-/**
- * Botón limpiar TODOS los datos
- */
-const clearAllBtn = document.getElementById('clear-all-btn');
-if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', async () => {
-        const confirmed = await showConfirmModal(
-            'Eliminar Todos los Datos',
-            '¿Deseas eliminar TODOS los datos registrados? Esta acción es IRREVERSIBLE y no se puede deshacer.'
-        );
-        
-        if (!confirmed) return;
-
-        clearAllBtn.classList.add('loading');
-        clearAllBtn.disabled = true;
-
-        try {
-            console.log('🗑️  Enviando solicitud para eliminar todo...');
-            const response = await fetch(`${API_URL}/dashboard/clear-data`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dataType: 'all' })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP Error: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('🗑️  Respuesta del servidor:', data);
-            
-            if (data.success) {
-                console.log('✅ Todos los datos han sido eliminados correctamente');
-                clearAllBtn.classList.remove('loading');
-                clearAllBtn.classList.add('success');
-                clearAllBtn.querySelector('.btn-text').textContent = '✅ Datos Eliminados';
-                
-                setTimeout(() => {
-                    clearAllBtn.classList.remove('success');
-                    clearAllBtn.disabled = false;
-                    clearAllBtn.querySelector('.btn-text').textContent = 'Limpiar Datos';
-                    loadBenchmarks();
-                }, 2000);
-            } else {
-                throw new Error(data.message || 'Error desconocido');
-            }
-        } catch (error) {
-            console.error('❌ Error eliminando todos los datos:', error);
-            clearAllBtn.classList.remove('loading');
-            clearAllBtn.classList.add('error');
-            clearAllBtn.querySelector('.btn-text').textContent = '❌ Error';
-            
-            setTimeout(() => {
-                clearAllBtn.classList.remove('error');
-                clearAllBtn.disabled = false;
-                clearAllBtn.querySelector('.btn-text').textContent = 'Limpiar Datos';
-            }, 2000);
-        }
-    });
-}
-
 // Cargar benchmarks al iniciar
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📊 Inicializando página de benchmarks...');
+    initializeBenchmarkChrome();
     loadBenchmarks();
     
     // Actualizar cada 30 segundos automáticamente
@@ -310,3 +174,46 @@ window.benchmarkModule = {
     loadBenchmarks,
     markEventAsFalsePositive
 };
+
+function updateBenchmarkHeaderLastUpdate(date) {
+    const chip = document.getElementById('pageLastUpdate');
+    if (!chip) return;
+    chip.innerHTML = `<i class="fas fa-clock"></i> Última actualización: ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+}
+
+function initializeBenchmarkChrome() {
+    updateBenchmarkDateTime();
+    setInterval(updateBenchmarkDateTime, 60000);
+
+    const logoutBtn = document.getElementById('pageLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            localStorage.removeItem('iot_user');
+            localStorage.removeItem('iot_login_time');
+            window.location.href = 'login.html';
+        });
+    }
+
+    const refreshBtn = document.getElementById('pageRefreshBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            console.log('🔄 Actualizando benchmarks...');
+            loadBenchmarks();
+        });
+    }
+
+}
+
+function updateBenchmarkDateTime() {
+    const chip = document.getElementById('pageDateTime');
+    if (!chip) return;
+    const now = new Date();
+    chip.textContent = now.toLocaleString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
