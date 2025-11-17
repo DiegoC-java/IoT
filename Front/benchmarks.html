@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="benchmarks.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="benchmarks-page">
+<body>
     <div class="iot-bg-bubble b1"></div>
     <div class="iot-bg-bubble b2"></div>
     <div class="iot-bg-bubble b3"></div>
@@ -20,19 +20,14 @@
                 <h1>Dashboard IoT</h1>
             </div>
             <div class="header-controls">
-                <button id="pageLogoutBtn" class="btn-logout">
+                <button id="logoutBtn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i>
                     Salir
                 </button>
-                <small id="pageDateTime" class="datetime-chip">—</small>
-                <button id="pageRefreshBtn" class="btn-refresh">
+                <button id="refreshBtn" class="btn-refresh">
                     <i class="fas fa-sync-alt"></i>
                     Actualizar
                 </button>
-                <small id="pageLastUpdate" class="datetime-chip">
-                    <i class="fas fa-clock"></i>
-                    Última actualización: --:--:--
-                </small>
             </div>
         </div>
     </header>
@@ -136,24 +131,27 @@
                     <thead>
                         <tr>
                             <th>Método</th>
-                            <th>Velocidad Promedio (ms)</th>
-                            <th>Total de Notificaciones</th>
+                            <th>Latencia Promedio</th>
+                            <th>Mediciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>📱 Dashboard (Tiempo Real)</td>
-                            <td style="color: #27ae60;">~150-500 ms</td>
-                            <td style="color: #27ae60;">Instant</td>
+                            <td>📱 Dashboard (Actualización)</td>
+                            <td id="dashboard-latency" style="color: #3498db;">-</td>
+                            <td id="dashboard-count">-</td>
                         </tr>
                         <tr>
-                            <td>📧 Email (Correo)</td>
+                            <td>📧 Email (Envío Correo)</td>
                             <td id="email-time">-</td>
                             <td id="email-count">-</td>
                         </tr>
                     </tbody>
                 </table>
-                <p style="color: #7f8c8d; font-size: 0.9rem;">⚡ Dashboard es ~13.7x más rápido que email</p>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">
+                    ⚡ Dashboard: tiempo desde que servidor recibe evento hasta que frontend lo muestra<br>
+                    📧 Email: tiempo de envío SMTP del correo de alerta
+                </p>
             </div>
 
             <!-- Loading & Error States -->

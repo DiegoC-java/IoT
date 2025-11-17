@@ -96,12 +96,19 @@ function renderBenchmarks(stats) {
             `;
         }
 
-        // ========== BENCHMARK 3: EMAIL ==========
+        // ========== BENCHMARK 3: EMAIL Y DASHBOARD ==========
         const emailData = stats.email || { avg_time: 0, total: 0 };
         const elem11 = document.getElementById('email-time');
         const elem12 = document.getElementById('email-count');
         if (elem11) elem11.textContent = `${Math.round(emailData.avg_time)} ms`;
         if (elem12) elem12.textContent = emailData.total || 0;
+
+        // Dashboard latency
+        const dashboardData = stats.dashboardLatency || { avg_latency: 0, total: 0 };
+        const elem13 = document.getElementById('dashboard-latency');
+        const elem14 = document.getElementById('dashboard-count');
+        if (elem13) elem13.textContent = `${Math.round(dashboardData.avg_latency)} ms`;
+        if (elem14) elem14.textContent = dashboardData.total || 0;
 
         console.log('✅ Benchmarks renderizados correctamente');
     } catch (error) {
@@ -185,7 +192,7 @@ function initializeBenchmarkChrome() {
     updateBenchmarkDateTime();
     setInterval(updateBenchmarkDateTime, 60000);
 
-    const logoutBtn = document.getElementById('pageLogoutBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
             localStorage.removeItem('iot_user');
@@ -194,7 +201,7 @@ function initializeBenchmarkChrome() {
         });
     }
 
-    const refreshBtn = document.getElementById('pageRefreshBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             console.log('🔄 Actualizando benchmarks...');
