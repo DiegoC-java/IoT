@@ -210,7 +210,7 @@ void setup() {
   delay(2000); 
 
   // --- NUEVO: CONFIGURACIÓN DE MQTT ---
-  mqttClient.setServer(MQTT_BROKER_URL, 1883); // MQTT_BROKER_URL debe estar en tu config.h
+  mqttClient.setServer(MQTT_BROKER_URL, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
 
   Serial.println("\n========================================");

@@ -2,6 +2,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
 const DEFAULT_LIMIT = 10;
 let currentLimit = DEFAULT_LIMIT;
 let isLoadingAlerts = false;
+let currentAlertsData = []; // Para almacenar los datos actuales
 
 document.addEventListener('DOMContentLoaded', () => {
     initializePageChrome();
@@ -13,6 +14,7 @@ function setupAlertControls() {
     const limitSelect = document.getElementById('alertsLimit');
     const refreshBtn = document.getElementById('refreshAlertsBtn');
     const headerRefreshBtn = document.getElementById('pageRefreshBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
 
     if (limitSelect) {
         limitSelect.value = DEFAULT_LIMIT.toString();
@@ -28,6 +30,9 @@ function setupAlertControls() {
     if (headerRefreshBtn) {
         headerRefreshBtn.addEventListener('click', fetchAndRenderAlerts);
     }
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', exportToCSV);
+    }
 }
 
 async function fetchAndRenderAlerts() {
@@ -40,11 +45,13 @@ async function fetchAndRenderAlerts() {
         if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
         const result = await response.json();
         const alerts = Array.isArray(result.data) ? result.data : [];
+        currentAlertsData = alerts; // Guardar los datos para exportación
         renderAlerts(alerts);
         showEmptyState(alerts.length === 0 ? 'Sin alertas registradas en este rango.' : '');
         updateAlertsLastUpdate();
     } catch (error) {
         console.error('Error cargando historial de alertas:', error);
+        currentAlertsData = [];
         renderAlerts([]);
         showEmptyState('No se pudo cargar el historial. Intenta nuevamente.');
     } finally {
@@ -219,4 +226,51 @@ function updateHeaderLastUpdate(date) {
     const chip = document.getElementById('pageLastUpdate');
     if (!chip) return;
     chip.innerHTML = `<i class="fas fa-clock"></i> Última actualización: ${date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+}
+
+function exportToCSV() {
+    if (!currentAlertsData || currentAlertsData.length === 0) {
+        alert('No hay datos para exportar. Por favor, carga algunas alertas primero.');
+        return;
+    }
+
+    // Crear encabezados del CSV
+    const headers = ['#', 'Evento', 'Dispositivo', 'Sensor', 'Valor', 'Fecha', 'Timestamp'];
+    
+    // Convertir datos a filas CSV
+    const rows = currentAlertsData.map((alert, index) => {
+        return [
+            index + 1,
+            getEventLabel(alert.event_type),
+            alert.device_id || '—',
+            formatSensorType(alert.sensor_type),
+            formatSensorValue(alert.sensor_value),
+            formatDateTime(alert.timestamp),
+            alert.timestamp || ''
+        ].map(value => `"${String(value).replace(/"/g, '""')}"`).join(',');
+    });
+
+    // Combinar encabezados y filas
+    const csvContent = [
+        headers.join(','),
+        ...rows
+    ].join('\n');
+
+    // Crear blob y descargar
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const filename = `alertas_iot_${timestamp}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    URL.revokeObjectURL(url);
 }

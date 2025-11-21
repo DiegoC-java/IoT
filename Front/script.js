@@ -3,7 +3,8 @@
 
 let devicesChart;
 let currentData = {};
-let isAlarmSystemArmed = true; // El sistema empieza armado por defecto
+// Recuperar estado de alarma del localStorage, o armado por defecto
+let isAlarmSystemArmed = localStorage.getItem('alarmSystemArmed') === 'false' ? false : true;
 let refreshInProgress = false; // evita solapado de peticiones
 let lastProcessedEventId = null; // Para rastrear qué eventos ya registramos latencia
 // Configuración de gráficos
@@ -290,6 +291,7 @@ async function initializeDashboard() {
         
         // Inicializar componentes
         await fetchLatestEvent();
+        await syncAlarmState(); // --- NUEVO: Sincronizar estado inicial con backend ---
         updateDateTime();
         initializeCharts();
         populateDevicesTable();
@@ -344,6 +346,8 @@ async function handleToggleAlarm() {
 
         if (result.success) {
             isAlarmSystemArmed = (newState === 'active');
+            // Guardar estado en localStorage para persistencia
+            localStorage.setItem('alarmSystemArmed', isAlarmSystemArmed);
             updateAlarmUI();
             console.log(`✅ Comando procesado. Nuevo estado: ${newState}`);
         } else {
@@ -352,6 +356,32 @@ async function handleToggleAlarm() {
     } catch (error) {
         console.error('Error de red al intentar cambiar el estado:', error);
         alert('Error de conexión con el servidor. No se pudo cambiar el estado de la alarma.');
+    }
+}
+
+// --- NUEVO: Sincronizar estado de alarma con el backend ---
+async function syncAlarmState() {
+    try {
+        const response = await fetch('http://localhost:3000/api/alarm/get-state');
+        if (!response.ok) {
+            console.warn('⚠️ No se pudo obtener el estado de la alarma del backend');
+            return;
+        }
+        
+        const result = await response.json();
+        if (result.success && result.state !== undefined) {
+            const backendArmed = (result.state === 'active');
+            
+            // Solo actualizar si hay discrepancia
+            if (isAlarmSystemArmed !== backendArmed) {
+                console.log(`🔄 Sincronizando estado: Local=${isAlarmSystemArmed}, Backend=${backendArmed}`);
+                isAlarmSystemArmed = backendArmed;
+                localStorage.setItem('alarmSystemArmed', isAlarmSystemArmed);
+                updateAlarmUI();
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error sincronizando estado de alarma:', error);
     }
 }
 
@@ -852,6 +882,7 @@ async function refreshData() {
         console.log('🔄 Refrescando datos...');
         await loadData();
         await fetchLatestEvent(); // --- NUEVO: Refresca también el último evento ---
+        await syncAlarmState(); // --- NUEVO: Sincronizar estado de alarma con backend ---
         
     // Actualizar gráfico de dispositivos
     updateDevicesChart();

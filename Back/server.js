@@ -32,6 +32,9 @@ app.use(express.urlencoded({ extended: true }));
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
 const mqttClient = mqtt.connect(MQTT_BROKER_URL);
 
+// Estado global de la alarma (por defecto: armada)
+let currentAlarmState = 'active';
+
 mqttClient.on('connect', () => {
     console.log('✅ Conectado al broker MQTT');
     // Suscribirse a estados vía MQTT (opcional si ESP32 publica LWT/heartbeat)
@@ -180,6 +183,9 @@ app.post('/api/alarm/set-state', (req, res) => {
     const topic = 'esp32/alarm/set'; // El "canal" al que el ESP32 escuchará
     const message = state;
 
+    // Actualizar estado global
+    currentAlarmState = state;
+
     // Publica el comando en el broker MQTT
     mqttClient.publish(topic, message, (err) => {
         if (err) {
@@ -188,6 +194,15 @@ app.post('/api/alarm/set-state', (req, res) => {
         }
         console.log(`📤 Comando de alarma "${state}" enviado al ESP32 en el tema "${topic}"`);
         res.json({ success: true, message: `Comando '${state}' enviado al dispositivo.` });
+    });
+});
+
+// Endpoint para obtener el estado actual de la alarma
+app.get('/api/alarm/get-state', (req, res) => {
+    res.json({ 
+        success: true, 
+        state: currentAlarmState,
+        timestamp: new Date().toISOString()
     });
 });
 
