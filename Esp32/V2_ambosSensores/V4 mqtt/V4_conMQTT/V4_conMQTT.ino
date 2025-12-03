@@ -2,25 +2,23 @@
 // 🚨 SISTEMA DE ALARMA IoT - V4.0
 // ========================================
 // Integración con MQTT para control remoto (Armar/Desarmar)
-// sin modificar la lógica de detección existente.
 
 #include <WiFi.h>
-#include <PubSubClient.h> // <-- LIBRERÍA MQTT
+#include <PubSubClient.h> 
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include "time.h"
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
-#include "config.h" // 🔐 Archivo de configuración
+#include "config.h" 
 
-// --- Instancias ---
 Adafruit_MPU6050 mpu;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 // --- ESTADO GLOBAL DEL SISTEMA ---
-bool isAlarmSystemArmed = true; // El sistema empieza armado por defecto
+bool isAlarmSystemArmed = true;
 
 // --- Heartbeat MQTT ---
 unsigned long lastHeartbeat = 0;
@@ -58,7 +56,6 @@ bool wifiConnected = false;
 // 📡 FUNCIONES MQTT
 // ========================================
 
-// Esta función se ejecuta cada vez que llega un mensaje en un tema al que estamos suscritos
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String message = "";
   for (int i = 0; i < length; i++) {
@@ -117,7 +114,6 @@ void reconnectMqtt() {
 
 // ========================================
 // 📡 FUNCIONES DE COMUNICACIÓN (HTTP)
-// (Tus funciones getFormattedTime, sendMotionEvent y sendVibrationEvent se mantienen aquí sin cambios)
 // ========================================
 
 String getFormattedTime() {
@@ -186,7 +182,6 @@ void setup() {
   pinMode(sensorPirPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
 
-  // (Inicialización de MPU6050, WiFi y NTP se mantiene igual que en tu V3.4)
   Serial.print("🔧 Inicializando MPU-6050... ");
   if (!mpu.begin()) {
     Serial.println("❌ FALLO");
@@ -209,7 +204,7 @@ void setup() {
   configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
   delay(2000); 
 
-  // --- NUEVO: CONFIGURACIÓN DE MQTT ---
+  // --- CONFIGURACIÓN DE MQTT ---
   mqttClient.setServer(MQTT_BROKER_URL, MQTT_PORT);
   mqttClient.setCallback(mqttCallback);
 
@@ -225,7 +220,7 @@ void setup() {
 void loop() {
   // --- MANTENER CONEXIONES ---
   if (WiFi.status() != WL_CONNECTED) {
-      // Aquí podrías añadir una lógica de reconexión de WiFi si es necesario
+
   }
   if (!mqttClient.connected()) {
     reconnectMqtt();
@@ -244,12 +239,9 @@ void loop() {
   if (currentTime - previousCheckTime >= checkInterval) {
     previousCheckTime = currentTime;
     
-    // --- ¡CAMBIO CLAVE! SOLO EJECUTAR LA LÓGICA SI EL SISTEMA ESTÁ ARMADO ---
     if (!isAlarmSystemArmed) {
-      return; // Si está desarmado, no hacer nada más y salir del ciclo de comprobación
-    }
+      return; 
 
-    // A partir de aquí, toda tu lógica del loop V3.4 se ejecuta sin cambios.
     int sensorStatePIR = digitalRead(sensorPirPin);
     sensors_event_t a, g, temp;
     mpu.getEvent(&a, &g, &temp);
