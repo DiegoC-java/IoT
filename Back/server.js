@@ -32,6 +32,9 @@ app.use(express.urlencoded({ extended: true }));
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || 'mqtt://localhost:1883';
 const mqttClient = mqtt.connect(MQTT_BROKER_URL);
 
+// Ventana de gracia para marcar dispositivos offline por MQTT (segundos)
+const MQTT_OFFLINE_DEBOUNCE_SECONDS = parseInt(process.env.MQTT_OFFLINE_DEBOUNCE_SECONDS || '5', 10);
+
 // Estado global de la alarma (por defecto: armada)
 let currentAlarmState = 'active';
 
@@ -72,17 +75,32 @@ mqttClient.on('message', async (topic, payload) => {
             const statusMsg = payload.toString().trim().toLowerCase(); // 'online' | 'offline'
             if (statusMsg !== 'online' && statusMsg !== 'offline') return;
 
-            const lastSeenValue = statusMsg === 'online' ? new Date() : null;
-            const upsertSql = `
-                INSERT INTO devices (id, name, device_type, status, last_seen, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-                ON CONFLICT (id) DO UPDATE SET
-                    status = EXCLUDED.status,
-                    last_seen = COALESCE(EXCLUDED.last_seen, devices.last_seen),
-                    updated_at = NOW();
-            `;
-            await pool.query(upsertSql, [deviceId, deviceId, 'esp32', statusMsg, lastSeenValue]);
-            console.log(`🔄 Estado MQTT actualizado: ${deviceId} -> ${statusMsg}`);
+            if (statusMsg === 'online') {
+                const lastSeenValue = new Date();
+                const upsertSql = `
+                    INSERT INTO devices (id, name, device_type, status, last_seen, created_at, updated_at)
+                    VALUES ($1, $2, $3, 'online', $4, NOW(), NOW())
+                    ON CONFLICT (id) DO UPDATE SET
+                        status = 'online',
+                        last_seen = EXCLUDED.last_seen,
+                        updated_at = NOW();
+                `;
+                await pool.query(upsertSql, [deviceId, deviceId, 'esp32', lastSeenValue]);
+                console.log(`🔄 Estado MQTT actualizado: ${deviceId} -> online`);
+            } else {
+                const result = await pool.query(`
+                    UPDATE devices
+                    SET status = 'offline', updated_at = NOW()
+                    WHERE id = $1
+                      AND (last_seen IS NULL OR last_seen < NOW() - ($2 || ' seconds')::interval);
+                `, [deviceId, MQTT_OFFLINE_DEBOUNCE_SECONDS]);
+
+                if (result.rowCount === 0) {
+                    console.log(`⚖️  MQTT offline ignorado para ${deviceId} (ventana gracia ${MQTT_OFFLINE_DEBOUNCE_SECONDS}s)`);
+                } else {
+                    console.log(`🔻 Estado MQTT actualizado: ${deviceId} -> offline`);
+                }
+            }
             return;
         }
 

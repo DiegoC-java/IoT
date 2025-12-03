@@ -7,6 +7,9 @@ let currentData = {};
 let isAlarmSystemArmed = localStorage.getItem('alarmSystemArmed') === 'false' ? false : true;
 let refreshInProgress = false; // evita solapado de peticiones
 let lastProcessedEventId = null; // Para rastrear qué eventos ya registramos latencia
+
+// Ventana de gracia para considerar realmente "offline" a un dispositivo (ms)
+const DEVICE_OFFLINE_GRACE_MS = 10000;
 // Configuración de gráficos
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
@@ -436,7 +439,8 @@ async function loadData() {
 
         const devicesWithIndex = (result.data || []).map((device, index) => ({
             ...device,
-            displayId: index + 1
+            displayId: index + 1,
+            displayStatus: getDisplayStatus(device)
         }));
 
         // Actualizar datos globales
@@ -447,7 +451,7 @@ async function loadData() {
                     current: devicesWithIndex.length > 0 ? 'Activo' : 'Sin dispositivos' 
                 },
                 activeDevices: { 
-                    current: devicesWithIndex.filter(d => d.status === 'online').length 
+                    current: devicesWithIndex.filter(d => (d.displayStatus || d.status) === 'online').length 
                 },
                 alerts: { 
                     current: eventsCount
@@ -521,6 +525,7 @@ async function loadDataFallback() {
 
     currentData.devices.forEach((device, index) => {
         device.displayId = index + 1;
+        device.displayStatus = getDisplayStatus(device);
     });
 
     // Actualizar UI con datos de respaldo
@@ -611,7 +616,8 @@ function initializeDevicesChart() {
     const statusCount = { online: 0, offline: 0, warning: 0 };
     if(currentData.devices) {
         currentData.devices.forEach(device => {
-            statusCount[device.status] = (statusCount[device.status] || 0) + 1;
+            const statusKey = (device.displayStatus || device.status || 'offline').toLowerCase();
+            statusCount[statusKey] = (statusCount[statusKey] || 0) + 1;
         });
     }
     
@@ -694,13 +700,37 @@ function populateDevicesTable() {
             <td>
                 <div class="device-name">${device.name}</div>
             </td>
-            <td><span class="status-badge status-${device.status}">${getStatusText(device.status)}</span></td>
+            <td><span class="status-badge status-${device.displayStatus || device.status}">${getStatusText(device.displayStatus || device.status)}</span></td>
             <td>${lastReading}</td>
             <td>${relativeTime}</td>
         `;
     });
     
     console.log(`📊 Tabla de dispositivos actualizada: ${currentData.devices.length} dispositivos`);
+}
+
+function getDisplayStatus(device) {
+    const rawStatus = (device.status || 'offline').toLowerCase();
+    if (rawStatus !== 'offline') {
+        return rawStatus;
+    }
+
+    const lastReadingIso = device.lastReading || device.last_reading || device.last_seen;
+    if (!lastReadingIso) {
+        return rawStatus;
+    }
+
+    const lastReadingDate = new Date(lastReadingIso);
+    if (Number.isNaN(lastReadingDate.getTime())) {
+        return rawStatus;
+    }
+
+    const diffMs = Date.now() - lastReadingDate.getTime();
+    if (diffMs < DEVICE_OFFLINE_GRACE_MS) {
+        return 'online';
+    }
+
+    return rawStatus;
 }
 
 // Obtener texto de estado
@@ -912,7 +942,8 @@ function updateDevicesChart() {
         // Contar estados de dispositivos
         const statusCount = { online: 0, offline: 0, warning: 0 };
         currentData.devices.forEach(device => {
-            statusCount[device.status] = (statusCount[device.status] || 0) + 1;
+            const statusKey = (device.displayStatus || device.status || 'offline').toLowerCase();
+            statusCount[statusKey] = (statusCount[statusKey] || 0) + 1;
         });
         
         devicesChart.data.datasets[0].data = [
