@@ -5,7 +5,7 @@ const nodemailer = require('nodemailer');
 const { sendAlertEmail, sendMFACode } = require('../services/emailService');
 const benchmarkService = require('../Benchmark/benchmarkService');
 
-// Importar database con manejo de errores
+
 let db = null;
 try {
     db = require('../database');
@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Refactor: Validación de login
+
 function validateLoginData(username, password) {
     if (!username || !password) {
         return 'Usuario y contraseña son requeridos';
@@ -40,7 +40,7 @@ function validateLoginData(username, password) {
     return null;
 }
 
-// Refactor: Manejo de errores
+
 function handleError(res, error, message = 'Error interno del servidor') {
     console.error(message, error);
     res.status(500).json({ success: false, message: error.message || message });
@@ -57,7 +57,7 @@ router.post('/auth/login', async (req, res) => {
             return res.status(400).json({ success: false, message: validationError });
         }
         let user = null;
-        // Autenticar contra la base de datos
+
         if (db && db.isAvailable && db.pool) {
             try {
                 console.log('🔍 Buscando usuario en base de datos...');
@@ -89,10 +89,9 @@ router.post('/auth/login', async (req, res) => {
             const duration = Date.now() - start;
             console.log(`⏱️ Tiempo de login para ${username}: ${duration} ms`);
             
-            // Si el usuario tiene MFA, no retornar success aún, esperar verificación
             if (user.mfa_enabled) {
                 console.log(`🔐 Usuario ${username} tiene MFA habilitado, requiriendo código...`);
-                // Generar código MFA
+
                 const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
                 mfaCodes[user.email] = { code: mfaCode, expiresAt, username, hashedPassword: '', role: user.role, loginStartTime: start };
@@ -103,7 +102,6 @@ router.post('/auth/login', async (req, res) => {
                     await sendMFACode(user.email, mfaCode);
                     const emailTime = Date.now() - emailStart;
                     
-                    // Guardar benchmark de email
                     await benchmarkService.saveEmailBenchmark({
                         email_type: 'mfa_code_login',
                         time_ms: emailTime
@@ -227,7 +225,7 @@ router.post('/auth/register', async (req, res) => {
         if (registerType === 'mfa') {
             // Generar código MFA y enviar email
             const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutos
+            const expiresAt = Date.now() + 5 * 60 * 1000;
             mfaCodes[email] = { code: mfaCode, expiresAt, username, hashedPassword, role };
 
             const startMail = Date.now();
@@ -450,10 +448,10 @@ router.post('/auth/verify-mfa-register', async (req, res) => {
 
 // ==================== OTROS ENDPOINTS ====================
 
-/**
- * GET /auth/check-mfa/:username
- * Verifica si un usuario tiene MFA habilitado
- */
+
+
+// Verifica si un usuario tiene MFA habilitado
+
 router.get('/auth/check-mfa/:username', async (req, res) => {
     try {
         const { username } = req.params;

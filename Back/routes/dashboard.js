@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-// Importar database con manejo de errores
+
 let db = null;
 try {
     db = require('../database');
@@ -58,8 +58,8 @@ const generateSimulatedData = () => {
     ];
 };
 
-// GET - Datos completos del dashboard
-// Refactor: Procesamiento de datos del dashboard
+
+
 function processDashboardData(devices) {
     const totalDevices = devices.length;
     const activeDevices = devices.filter(d => d.status === 'online').length;

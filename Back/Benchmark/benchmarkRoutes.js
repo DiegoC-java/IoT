@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const benchmarkService = require('./benchmarkService');
 
-/**
- * GET /api/benchmarks/stats
- * Obtiene todas las estadísticas de benchmarks
- */
+
+
+ // Obtiene todas las estadísticas de benchmarks
+
 router.get('/benchmarks/stats', async (req, res) => {
     try {
         const stats = await benchmarkService.getBenchmarkStats();
@@ -31,11 +31,9 @@ router.get('/benchmarks/stats', async (req, res) => {
     }
 });
 
-/**
- * POST /api/benchmarks/auth
- * Guarda métrica de login/registro
- * Body: { metric_type, mfa, time_ms, username }
- */
+
+// Guarda métrica de login/registro
+ 
 router.post('/benchmarks/auth', async (req, res) => {
     try {
         const { metric_type, mfa, time_ms, username } = req.body;
@@ -75,11 +73,9 @@ router.post('/benchmarks/auth', async (req, res) => {
     }
 });
 
-/**
- * POST /api/benchmarks/email
- * Guarda métrica de envío de email
- * Body: { email_type, time_ms }
- */
+
+// Guarda métrica de envío de email
+
 router.post('/benchmarks/email', async (req, res) => {
     try {
         const { email_type, time_ms } = req.body;
@@ -117,11 +113,9 @@ router.post('/benchmarks/email', async (req, res) => {
     }
 });
 
-/**
- * PUT /api/benchmarks/event/:eventId
- * Marca un evento como real o falso positivo
- * Body: { is_false_positive: boolean }
- */
+
+// Marca un evento como real o falso positivo
+
 router.put('/benchmarks/event/:eventId', async (req, res) => {
     try {
         const { eventId } = req.params;

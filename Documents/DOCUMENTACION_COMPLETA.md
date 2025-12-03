@@ -113,17 +113,14 @@ Sistema IoT de alarma con doble sensor (PIR + MPU6050) que envía eventos a un b
 
 #### **1. ESP32 detecta evento:**
 ```cpp
-// Sensor de movimiento (PIR) detecta movimiento
+ 
 if (sensorStatePIR == HIGH) {
-    // Confirma movimiento (750ms)
-    // Envía HTTP POST al backend
+ 
     sendMotionEvent();
 }
 
-// Sensor de vibración (MPU6050) detecta vibración
-if (totalAccel > VIBRATION_THRESHOLD) {
-    // Detecta vibración
-    // Envía HTTP POST al backend
+ if (totalAccel > VIBRATION_THRESHOLD) {
+     
     sendVibrationEvent();
 }
 ```

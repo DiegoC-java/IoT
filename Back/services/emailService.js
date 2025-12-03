@@ -1,9 +1,8 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config({ path: '../../.env' });// Asegúrate de que las variables de entorno se carguen
+require('dotenv').config({ path: '../../.env' });
 const benchmarkService = require('../Benchmark/benchmarkService');
 
-// 1. Configurar el "transportador" de correo.
-//    Lee las credenciales de tu archivo .env
+// Es el "transportador" de correo.
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -12,7 +11,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Refactor: Validar destinatario
+
 function validateRecipient(recipientEmail) {
     if (!recipientEmail) {
         console.error('❌ No se proporcionó un destinatario para la alerta.');
@@ -21,7 +20,7 @@ function validateRecipient(recipientEmail) {
     return true;
 }
 
-// Refactor: Construir opciones de correo
+
 function buildMailOptions(recipientEmail, eventData) {
     const isMotion = eventData.event_type === 'motion_detected';
     const subject = `🚨 ¡Alerta de Seguridad! - ${isMotion ? 'Movimiento Detectado' : 'Vibración Detectada'}`;
@@ -48,11 +47,7 @@ function buildMailOptions(recipientEmail, eventData) {
     };
 }
 
-/**
- * Envía un correo electrónico de alerta de seguridad.
- * @param {string} recipientEmail - El correo del usuario a notificar.
- * @param {object} eventData - Los datos del evento (ej. { event_type, sensor_type, timestamp }).
- */
+
 async function sendAlertEmail(recipientEmail, eventData) {
     try {
         if (!validateRecipient(recipientEmail)) return;
@@ -75,11 +70,7 @@ async function sendAlertEmail(recipientEmail, eventData) {
     }
 }
 
-/**
- * Envía un correo con código de verificación MFA.
- * @param {string} recipientEmail - El correo del usuario.
- * @param {string} mfaCode - El código de verificación de 6 dígitos.
- */
+
 async function sendMFACode(recipientEmail, mfaCode) {
     try {
         if (!validateRecipient(recipientEmail)) return;
@@ -110,7 +101,7 @@ async function sendMFACode(recipientEmail, mfaCode) {
         console.log(`✅ Código MFA enviado a ${recipientEmail}: ${info.messageId}`);
         console.log(`⏱️ Tiempo de envío: ${emailTime}ms`);
         
-        // Guardar benchmark de email
+
         await benchmarkService.saveEmailBenchmark({
             email_type: 'mfa_code',
             time_ms: emailTime

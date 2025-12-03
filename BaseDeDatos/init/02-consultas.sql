@@ -1,11 +1,11 @@
--- Este script se ejecuta como segundo paso (después de 01-init-user.sql)
+-- Este script se ejecuta como segundo paso
 -- Ya conectado a la base de datos iot_dashboard
 
 -- Crear tabla de usuarios si no existe
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL, -- En producción usar hash bcrypt
+    password VARCHAR(255) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     role VARCHAR(20) DEFAULT 'user',
     active BOOLEAN DEFAULT true,
@@ -74,10 +74,10 @@ GRANT ALL PRIVILEGES ON TABLE devices TO iot_user;
 -- Tabla para guardar métricas de login/registro
 CREATE TABLE IF NOT EXISTS benchmark_metrics (
     id SERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,  -- 'login' o 'registro'
-    mfa BOOLEAN NOT NULL,               -- true si usa MFA, false sin MFA
-    time_ms NUMERIC(10,2) NOT NULL,    -- Tiempo en milisegundos
-    username VARCHAR(50),               -- Usuario que hizo la acción
+    metric_type VARCHAR(50) NOT NULL,  
+    mfa BOOLEAN NOT NULL,              
+    time_ms NUMERIC(10,2) NOT NULL,    
+    username VARCHAR(50),              
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -88,8 +88,8 @@ CREATE INDEX idx_benchmark_metrics_timestamp ON benchmark_metrics(created_at DES
 -- Tabla para guardar tiempos de envío de email
 CREATE TABLE IF NOT EXISTS email_metrics (
     id SERIAL PRIMARY KEY,
-    email_type VARCHAR(50) NOT NULL,    -- 'mfa_code', 'alert_email', etc
-    time_ms NUMERIC(10,2) NOT NULL,    -- Tiempo en milisegundos
+    email_type VARCHAR(50) NOT NULL,
+    time_ms NUMERIC(10,2) NOT NULL,  
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

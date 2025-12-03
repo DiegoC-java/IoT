@@ -1,4 +1,4 @@
-// Script de prueba para verificar las variables de entorno
+
 require('dotenv').config();
 
 console.log('🔍 Verificando variables de entorno:');

@@ -2,7 +2,7 @@
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Cargar igual que postgresql.js
+
 dotenv.config({ path: path.join(__dirname, '..', '..', '.env') });
 
 console.log('🔍 Verificando desde BaseDeDatos:');

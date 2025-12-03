@@ -1,9 +1,6 @@
 const db = require('../database');
 
-/**
- * Guarda una métrica de login/registro en la BD
- * @param {object} metricData - { metric_type, mfa, time_ms, username }
- */
+
 async function saveAuthBenchmark(metricData) {
     try {
         if (!db || !db.isAvailable || !db.pool) {
@@ -28,10 +25,7 @@ async function saveAuthBenchmark(metricData) {
     }
 }
 
-/**
- * Guarda tiempo de envío de email
- * @param {object} metricData - { email_type, time_ms }
- */
+
 async function saveEmailBenchmark(metricData) {
     try {
         if (!db || !db.isAvailable || !db.pool) {
@@ -56,11 +50,7 @@ async function saveEmailBenchmark(metricData) {
     }
 }
 
-/**
- * Marca una alerta como verdadera o falsa
- * @param {number} eventId - ID del evento
- * @param {boolean} isFalsePositive - true si es falso positivo
- */
+
 async function markEventAsRealOrFalse(eventId, isFalsePositive) {
     try {
         if (!db || !db.isAvailable || !db.pool) {
@@ -84,9 +74,9 @@ async function markEventAsRealOrFalse(eventId, isFalsePositive) {
     }
 }
 
-/**
- * Obtiene estadísticas de benchmarks
- */
+
+// Obtiene estadísticas de benchmarks
+
 async function getBenchmarkStats() {
     try {
         if (!db || !db.isAvailable || !db.pool) {
