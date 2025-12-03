@@ -24,8 +24,8 @@ const int ledVibracionPin = 18; // LED para Vibración (MPU-6050)
 const int sensorPirPin = 23;
 const int buzzerPin = 13;
 
-// --- URL del backend (ajusta la IP a la de tu PC) ---
-const char* backendUrl = "http://192.168.1.11:3000/api/devices/motion"; // Cambia la IP por la de tu PC
+// --- URL del backend  ---
+const char* backendUrl = "http://192.168.1.11:3000/api/devices/motion"; // Cambia la IP por la del PC
 
 // --- Función para enviar evento al backend ---
 void sendEventToBackend(const char* eventType, const char* sensorType, int sensorValue) {
