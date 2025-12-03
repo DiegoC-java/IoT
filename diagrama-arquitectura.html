@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Flujo - Sistema de Alarma IoT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #3533cd;
+            min-height: 100vh;
+            padding: 30px;
+            color: #fff;
+        }
+ 
+        .diagram-section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            max-width: 1100px;
+            margin: 0 auto 80px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .diagram-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3533cd;
+            margin-bottom: 50px;
+        }
+
+        /* Contenedor del diagrama */
+        .flowchart {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* Fila horizontal */
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        /* Cajas del diagrama */
+        .box {
+            border: 2px solid #3533cd;
+            padding: 15px 25px;
+            text-align: center;
+            background: #fff;
+            min-width: 140px;
+            position: relative;
+        }
+
+        .box-rect {
+            border-radius: 8px;
+        }
+
+        .box-diamond {
+            transform: rotate(0deg);
+            border-radius: 0;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 30px 40px;
+            min-width: 160px;
+        }
+
+        .box-rounded {
+            border-radius: 30px;
+        }
+
+        .box-cylinder {
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .box-cylinder::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -2px;
+            right: -2px;
+            height: 16px;
+            border: 2px solid #3533cd;
+            border-radius: 50%;
+            background: #d4d3ff;
+        }
+
+        .box h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #3533cd;
+            margin-bottom: 4px;
+        }
+
+        .box p {
+            font-size: 0.75rem;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Colores por tipo - Paleta #3533cd */
+        .box-sensor { background: #eeeeff; border-color: #3533cd; }
+        .box-sensor h3 { color: #3533cd; }
+
+        .box-process { background: #e8e7ff; border-color: #3533cd; }
+        .box-process h3 { color: #3533cd; }
+
+        .box-server { background: #dedeff; border-color: #3533cd; }
+        .box-server h3 { color: #3533cd; }
+
+        .box-database { background: #d4d3ff; border-color: #3533cd; }
+        .box-database h3 { color: #3533cd; }
+
+        .box-output { background: #c9c8ff; border-color: #3533cd; }
+        .box-output h3 { color: #3533cd; }
+
+        .box-start { background: #bfbeff; border-color: #3533cd; }
+        .box-start h3 { color: #3533cd; }
+
+        /* Flechas horizontales */
+        .arrow-h {
+            width: 60px;
+            height: 2px;
+            background: #3533cd;
+            position: relative;
+        }
+
+        .arrow-h::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -5px;
+            border: 6px solid transparent;
+            border-left: 8px solid #3533cd;
+        }
+
+        /* Flechas verticales */
+        .arrow-v {
+            width: 2px;
+            height: 40px;
+            background: #3533cd;
+            position: relative;
+        }
+
+        .arrow-v::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -5px;
+            border: 6px solid transparent;
+            border-top: 8px solid #3533cd;
+        }
+
+        /* Etiquetas de protocolo */
+        .protocol-label {
+            position: absolute;
+            font-size: 0.7rem;
+            color: #3533cd;
+            background: #fff;
+            padding: 2px 6px;
+            font-weight: 600;
+            border-radius: 3px;
+        }
+
+        .arrow-h .protocol-label {
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Línea de retorno MQTT */
+        .mqtt-return {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mqtt-line {
+            display: flex;
+            align-items: center;
+        }
+
+        .mqtt-line-h {
+            width: 300px;
+            height: 2px;
+            background: #9c27b0;
+        }
+
+        .mqtt-line-v {
+            width: 2px;
+            height: 30px;
+            background: #9c27b0;
+        }
+
+        .mqtt-arrow {
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            border-right: 8px solid #9c27b0;
+        }
+
+        .mqtt-label {
+            font-size: 0.7rem;
+            color: #9c27b0;
+            font-weight: 600;
+            background: #fff;
+            padding: 2px 6px;
+        }
+
+        /* Sensores rama */
+        .sensors-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-right: 0;
+        }
+
+        .sensor-pair {
+            display: flex;
+            gap: 20px;
+        }
+
+        .box-small {
+            padding: 10px 15px;
+            min-width: 100px;
+        }
+
+        .box-small h3 {
+            font-size: 0.8rem;
+        }
+
+        .box-small p {
+            font-size: 0.65rem;
+        }
+
+        /* Conector de sensores */
+        .connector-v {
+            width: 2px;
+            height: 20px;
+            background: #3533cd;
+        }
+
+        .connector-join {
+            display: flex;
+            align-items: center;
+        }
+
+        .connector-join .line-h {
+            width: 60px;
+            height: 2px;
+            background: #3533cd;
+        }
+
+        .connector-join .line-v {
+            width: 2px;
+            height: 40px;
+            background: #3533cd;
+        }
+
+ 
+        .separator {
+            border: none;
+            border-top: 3px dashed rgba(255,255,255,0.3);
+            margin: 60px auto;
+            max-width: 800px;
+        }
+
+        .tech-section {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .tech-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 40px;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .tech-card {
+            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .tech-card h4 {
+            font-size: 0.9rem;
+            color: #3533cd;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .tech-card ul {
+            list-style: none;
+            font-size: 0.8rem;
+            color: #444;
+        }
+
+        .tech-card ul li {
+            margin: 4px 0;
+        }
+
+        .tech-card.hardware { border-left: 4px solid #3533cd; }
+        .tech-card.backend { border-left: 4px solid #4a48d6; }
+        .tech-card.database { border-left: 4px solid #5f5de0; }
+        .tech-card.frontend { border-left: 4px solid #7472e9; }
+        .tech-card.protocols { border-left: 4px solid #8987f2; }
+        .tech-card.devops { border-left: 4px solid #9e9cfb; }
+
+    </style>
+</head>
+<body>
+ 
+    <section class="diagram-section">
+        <h1 class="diagram-title">Diagrama de Flujo - Sistema de Alarma IoT</h1>
+
+        <div class="flowchart">
+             <div class="flow-row">
+                
+                 <div class="sensors-branch">
+                    <div class="sensor-pair">
+                        <div class="box box-rect box-sensor box-small">
+                            <h3>PIR</h3>
+                            <p>Movimiento</p>
+                        </div>
+                        <div class="box box-rect box-sensor box-small">
+                            <h3>MPU6050</h3>
+                            <p>Vibración</p>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="arrow-h" style="width: 40px;"></div>
+
+                 <div class="box box-rect box-process">
+                    <h3>ESP32</h3>
+                    <p>Procesa datos</p>
+                </div>
+
+                 <div class="arrow-h" style="position: relative;">
+                    <span class="protocol-label">HTTP</span>
+                </div>
+
+                 <div class="box box-rect box-server">
+                    <h3>Backend</h3>
+                    <p>Node.js</p>
+                </div>
+
+                 <div class="arrow-h" style="position: relative;">
+                    <span class="protocol-label">SQL</span>
+                </div>
+
+                 <div class="box box-rect box-database" style="padding-top: 20px;">
+                    <h3>PostgreSQL</h3>
+                    <p>Almacena eventos</p>
+                </div>
+
+                 <div class="arrow-h" style="position: relative;">
+                    <span class="protocol-label">API REST</span>
+                </div>
+
+                 <div class="box box-rounded box-output">
+                    <h3>Dashboard</h3>
+                    <p>Monitoreo web</p>
+                </div>
+
+            </div>
+
+             <div style="position: relative; width: 100%; height: 80px; margin-top: 20px;">
+                <svg width="100%" height="80" style="position: absolute; left: 0; top: 0;">
+                     <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#9c27b0" />
+                        </marker>
+                    </defs>
+                     <path d="M 520 0 L 520 40 L 280 40 L 280 0" 
+                          stroke="#9c27b0" 
+                          stroke-width="2" 
+                          fill="none"
+                          stroke-dasharray="5,3"
+                          marker-end="url(#arrowhead)"/>
+                    <text x="400" y="55" text-anchor="middle" font-size="11" fill="#9c27b0" font-weight="600">MQTT (Control remoto)</text>
+                </svg>
+            </div>
+
+        </div>
+    </section>
+ 
+    <hr class="separator">
+
+ 
+    <section class="tech-section">
+        <h2 class="tech-title">Tecnologías Utilizadas</h2>
+
+        <div class="tech-grid">
+            <div class="tech-card hardware">
+                <h4>🔌 Hardware</h4>
+                <ul>
+                    <li>ESP32</li>
+                    <li>Sensor PIR HC-SR501</li>
+                    <li>Acelerómetro MPU6050</li>
+                    <li>LED + Buzzer</li>
+                </ul>
+            </div>
+
+            <div class="tech-card backend">
+                <h4>🖥️ Backend</h4>
+                <ul>
+                    <li>Node.js</li>
+                    <li>Express.js</li>
+                    <li>bcrypt</li>
+                </ul>
+            </div>
+
+            <div class="tech-card database">
+                <h4>🗄️ Base de Datos</h4>
+                <ul>
+                    <li>PostgreSQL 15</li>
+                    <li>Docker</li>
+                </ul>
+            </div>
+
+            <div class="tech-card frontend">
+                <h4>🌐 Frontend</h4>
+                <ul>
+                    <li>HTML5</li>
+                    <li>CSS3</li>
+                    <li>JavaScript</li>
+                </ul>
+            </div>
+
+            <div class="tech-card protocols">
+                <h4>📡 Protocolos</h4>
+                <ul>
+                    <li>HTTP / REST API</li>
+                    <li>MQTT</li>
+                    <li>WiFi</li>
+                </ul>
+            </div>
+
+            <div class="tech-card devops">
+                <h4>🛠️ DevOps</h4>
+                <ul>
+                    <li>Docker Compose</li>
+                    <li>Git / GitHub</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+</body>
+</html>

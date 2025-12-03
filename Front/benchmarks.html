@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benchmarks</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="benchmarks.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="iot-bg-bubble b1"></div>
+    <div class="iot-bg-bubble b2"></div>
+    <div class="iot-bg-bubble b3"></div>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <h1>Dashboard IoT</h1>
+            </div>
+            <div class="header-controls">
+                <button id="logoutBtn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Salir
+                </button>
+                <button id="refreshBtn" class="btn-refresh">
+                    <i class="fas fa-sync-alt"></i>
+                    Actualizar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar">
+        <nav class="nav-menu">
+            <ul>
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Resumen</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="devices.html" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Historial de alertas</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="benchmarks.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Benchmarks</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <section class="alerts-hero benchmark-hero">
+            <div class="benchmark-hero-copy">
+                <p class="eyebrow">Panel de monitoreo</p>
+                <h2>Benchmark de rendimiento</h2>
+                <p class="subtitle">Comparativa de inicios de sesión, falsos positivos y velocidad de notificaciones.</p>
+            </div>
+        </section>
+        <section class="benchmark-section">
+            
+            <!-- BENCHMARK 1: Login MFA vs Sin MFA -->
+            <div style="margin-top:2rem;">
+                <h3>1️⃣ Login MFA vs Login sin MFA</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Login</th>
+                            <th>Velocidad Promedio (ms)</th>
+                            <th>Total de Intentos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>🔒 Login SIN MFA</td>
+                            <td id="login-sin-mfa-time">-</td>
+                            <td id="login-sin-mfa-count">-</td>
+                        </tr>
+                        <tr>
+                            <td>🔐 Login CON MFA</td>
+                            <td id="login-con-mfa-time">-</td>
+                            <td id="login-con-mfa-count">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">⏱️ Login sin MFA es más rápido (sin esperar email)</p>
+            </div>
+
+            <!-- BENCHMARK 2: Tasa de Falsos Positivos -->
+            <div style="margin-top:2rem;">
+                <h3>2️⃣ Tasa de Falsos Positivos (MPU6050 vs PIR)</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Sensor</th>
+                            <th>Total de Alertas</th>
+                            <th>Falsos Positivos</th>
+                            <th>Tasa (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📍 PIR (Movimiento)</td>
+                            <td id="pir-total">-</td>
+                            <td id="pir-false">-</td>
+                            <td id="pir-percentage">-</td>
+                        </tr>
+                        <tr>
+                            <td>📊 MPU6050 (Vibración)</td>
+                            <td id="mpu-total">-</td>
+                            <td id="mpu-false">-</td>
+                            <td id="mpu-percentage">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">🎯 Ideal: &lt; 5% (menos falsos positivos = mejor)</p>
+            </div>
+
+            <!-- BENCHMARK 3: Dashboard vs Correo -->
+            <div style="margin-top:2rem;">
+                <h3>3️⃣ Velocidad Dashboard vs Correo (Notificación de Alarma)</h3>
+                <table class="bench-table">
+                    <thead>
+                        <tr>
+                            <th>Método</th>
+                            <th>Latencia Promedio</th>
+                            <th>Mediciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>📱 Dashboard (Actualización)</td>
+                            <td id="dashboard-latency" style="color: #3498db;">-</td>
+                            <td id="dashboard-count">-</td>
+                        </tr>
+                        <tr>
+                            <td>📧 Email (Envío Correo)</td>
+                            <td id="email-time">-</td>
+                            <td id="email-count">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="color: #7f8c8d; font-size: 0.9rem;">
+                    ⚡ Dashboard: tiempo desde que servidor recibe evento hasta que frontend lo muestra<br>
+                    📧 Email: tiempo de envío SMTP del correo de alerta
+                </p>
+            </div>
+
+            <!-- Loading & Error States -->
+            <div id="loading" style="display: none; margin-top: 2rem;">
+                <p>⏳ Cargando benchmarks...</p>
+            </div>
+            <div id="error" style="display: none; margin-top: 2rem; color: #e74c3c;">
+                <p>❌ Error al cargar los benchmarks</p>
+            </div>
+
+            <!-- Última actualización -->
+        </section>
+    </main>
+    <script src="benchmarks.js"></script>
+</body>
+</html>

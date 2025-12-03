@@ -1,11 +1,116 @@
 // Variables globales
-let temperatureChart;
+// ...existing code...
+
 let devicesChart;
 let currentData = {};
+// Recuperar estado de alarma del localStorage, o armado por defecto
+let isAlarmSystemArmed = localStorage.getItem('alarmSystemArmed') === 'false' ? false : true;
+let refreshInProgress = false; // evita solapado de peticiones
+let lastProcessedEventId = null; // Para rastrear qué eventos ya registramos latencia
 
+// Ventana de gracia para considerar realmente "offline" a un dispositivo (ms)
+const DEVICE_OFFLINE_GRACE_MS = 10000;
 // Configuración de gráficos
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
+
+// --- NUEVO: Función para buscar y actualizar el evento más reciente ---
+async function fetchLatestEvent() {
+    try {
+        const response = await fetch('http://localhost:3000/api/events/latest');
+        if (!response.ok) {
+            // No mostrar error en consola para no saturar, ya que se llama constantemente
+            return;
+        }
+        const result = await response.json();
+        if (result.success && result.data) {
+            updateRecentEventCard(result.data);
+            
+            // Calcular latencia dashboard y enviarla al backend solo para eventos nuevos
+            if (result.data.server_received_at && result.data.id !== lastProcessedEventId) {
+                // Date.now() ya devuelve timestamp UTC (ms desde epoch)
+                const clientReceivedAt = Date.now();
+                const serverTimeUTC = new Date(result.data.server_received_at).getTime();
+                const latencyMs = clientReceivedAt - serverTimeUTC;
+                
+                console.log(`🕒 Calculando latencia - Cliente: ${new Date(clientReceivedAt).toISOString()}, Servidor: ${result.data.server_received_at}, Diff: ${latencyMs}ms`);
+                
+                // Solo enviar si la latencia es positiva y razonable (evitar errores de reloj)
+                if (latencyMs > 0 && latencyMs < 60000) {
+                    recordDashboardLatency(result.data.id, latencyMs);
+                    lastProcessedEventId = result.data.id; // Marcar como procesado
+                } else {
+                    console.warn(`⚠️ Latencia fuera de rango (${latencyMs}ms) - no se registrará`);
+                }
+            }
+        } else {
+            updateRecentEventCard(null); // No hay eventos
+        }
+    } catch (error) {
+        // Ignorar errores de fetch para que el polling no se detenga
+        console.error('Error en fetchLatestEvent:', error.message);
+    }
+}
+
+// Registrar latencia del dashboard en el backend
+async function recordDashboardLatency(eventId, latencyMs) {
+    try {
+        console.log(`📊 Registrando latencia dashboard: evento ${eventId}, ${latencyMs}ms`);
+        const response = await fetch('http://localhost:3000/api/events/record-latency', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId, latency_ms: latencyMs })
+        });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Error del servidor al registrar latencia: ${response.status} - ${errorText}`);
+        } else {
+            console.log('✅ Latencia registrada correctamente');
+        }
+    } catch (error) {
+        console.error('❌ Error registrando latencia:', error.message);
+    }
+}
+
+// --- NUEVO: Función para actualizar la tarjeta de "Eventos Recientes" en el HTML ---
+function updateRecentEventCard(event) {
+    const eventContainer = document.getElementById('recent-event-display');
+    if (!eventContainer) return;
+
+    if (!event) {
+        eventContainer.innerHTML = '<p class="no-events">No hay alertas recientes.</p>';
+        return;
+    }
+
+    const eventTime = new Date(event.timestamp).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    let description = 'Evento desconocido';
+    let icon = 'fas fa-question-circle';
+    let eventClass = ''; // <-- Variable para la clase de color
+
+    if (event.event_type === 'motion_detected') {
+        description = 'Movimiento detectado';
+        icon = 'fas fa-walking';
+        eventClass = 'motion'; // <-- Asigna la clase 'motion'
+    } else if (event.event_type === 'vibration_detected') {
+        description = 'Vibración detectada';
+        icon = 'fas fa-broadcast-tower'; // Un icono más representativo de vibración
+        eventClass = 'vibration'; // <-- Asigna la clase 'vibration'
+    }
+
+    // Usamos la nueva clase en el div principal para aplicar los colores
+    eventContainer.innerHTML = `
+        <div class="event-details ${eventClass}">
+            <i class="${icon}"></i>
+            <span>${description}</span>
+        </div>
+        <div class="event-time">a las ${eventTime}</div>
+    `;
+}
 
 // Verificar autenticación al cargar el dashboard
 function checkAuthentication() {
@@ -53,47 +158,92 @@ function checkAuthentication() {
 // Mostrar información del usuario
 function showUserInfo(userData) {
     const headerControls = document.querySelector('.header-controls');
-    if (headerControls && !document.getElementById('userInfo')) {
-        const userInfo = document.createElement('div');
-        userInfo.id = 'userInfo';
-        userInfo.innerHTML = `
-            <div class="user-info" style="
-                display: flex; 
-                align-items: center; 
-                gap: 1rem; 
-                margin-right: 1rem;
-                padding: 0.5rem 1rem;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            ">
-                <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                    <span style="color: var(--text-primary); font-size: 0.875rem; font-weight: 600;">
-                        <i class="fas fa-user"></i> ${userData.username}
-                    </span>
-                    <span style="color: var(--text-secondary); font-size: 0.75rem;">
-                        ${userData.role ? userData.role.charAt(0).toUpperCase() + userData.role.slice(1) : 'Usuario'}
-                    </span>
-                </div>
-                <button onclick="logout()" class="btn-logout" style="
-                    padding: 0.5rem 1rem; 
-                    background: var(--danger-color); 
-                    color: white; 
-                    border: none; 
-                    border-radius: 6px; 
-                    cursor: pointer; 
-                    font-size: 0.875rem;
-                    transition: var(--transition);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                " onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='var(--danger-color)'">
-                    <i class="fas fa-sign-out-alt"></i> Salir
-                </button>
-            </div>
+    if (headerControls) {
+        headerControls.innerHTML = '';
+
+        // Botón Salir
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'btn-logout';
+        logoutBtn.style.cssText = `
+            padding: 0.5rem 1rem;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         `;
-        headerControls.insertBefore(userInfo, headerControls.firstChild);
+        logoutBtn.innerHTML = `<i class="fas fa-sign-out-alt"></i> Salir`;
+        logoutBtn.onclick = logout;
+
+        // Fecha y hora actual
+        let datetimeElement = document.getElementById('datetime');
+        if (!datetimeElement) {
+            datetimeElement = document.createElement('small');
+            datetimeElement.id = 'datetime';
+            datetimeElement.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-right: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+        }
+
+        // Botón Actualizar
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshBtn';
+        refreshBtn.className = 'btn-refresh';
+        refreshBtn.style.cssText = `
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-right: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        `;
+        refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Actualizar`;
+        refreshBtn.addEventListener('click', refreshData);
+
+        // Indicador de última actualización
+        let updateIndicator = document.getElementById('lastUpdate');
+        if (!updateIndicator) {
+            updateIndicator = document.createElement('small');
+            updateIndicator.id = 'lastUpdate';
+            updateIndicator.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-right: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+        }
+
+        // Estructura: [SALIR] [fecha/hora actual] [ACTUALIZAR] [última actualización]
+        const headerRow = document.createElement('div');
+        headerRow.style.display = 'flex';
+        headerRow.style.alignItems = 'center';
+        headerRow.style.justifyContent = 'flex-end';
+        headerRow.appendChild(logoutBtn);
+        headerRow.appendChild(datetimeElement);
+        headerRow.appendChild(refreshBtn);
+        headerRow.appendChild(updateIndicator);
+        headerControls.appendChild(headerRow);
     }
 }
 
@@ -125,7 +275,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!checkAuthentication()) {
         return; // No continuar si no está autenticado
     }
-    
+
+    // Mostrar fecha y hora actuales en el header
+    updateDateTime();
+
     // Continuar con la inicialización normal del dashboard
     console.log('🚀 Inicializando dashboard...');
     initializeDashboard();
@@ -133,86 +286,273 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función principal de inicialización
 async function initializeDashboard() {
-    showLoading(true);
+    //showLoading(true);
     
     try {
         // Cargar datos
         await loadData();
         
         // Inicializar componentes
+        await fetchLatestEvent();
+        await syncAlarmState(); // --- NUEVO: Sincronizar estado inicial con backend ---
         updateDateTime();
         initializeCharts();
         populateDevicesTable();
         setupEventListeners();
-        
+        //logica del armado y desarmado
+        setupAlarmControls(); // Asigna el evento 'click' a la tarjeta
+        updateAlarmUI();
         // Actualizar datos cada 30 segundos
-        setInterval(refreshData, 30000);
-        
-        showLoading(false);
+        setInterval(refreshData, 3000);
+        setInterval(fetchLatestEvent, 5000); // <-- ¡ESTA ES LA LÍNEA QUE FALTABA!
+
+        //showLoading(false);
         console.log('✅ Dashboard inicializado correctamente');
     } catch (error) {
         console.error('❌ Error inicializando dashboard:', error);
-        showLoading(false);
+        //showLoading(false);
+    }
+    setupAlarmControls();
+    updateAlarmUI(); // Llama para establecer el estado visual inicial
+}
+
+function updateAlarmUI() {
+    const statusText = document.getElementById('system-status-text');
+    const statusIcon = document.getElementById('system-status-icon');
+    
+    if (!statusText || !statusIcon) return;
+
+    if (isAlarmSystemArmed) {
+        statusText.textContent = 'Armado';
+        statusIcon.className = 'kpi-icon armed';
+    } else {
+        statusText.textContent = 'Desarmado';
+        statusIcon.className = 'kpi-icon disarmed';
     }
 }
 
+// Función que se ejecuta al hacer clic en la tarjeta de control
+async function handleToggleAlarm() {
+    const newState = isAlarmSystemArmed ? 'inactive' : 'active';
+    console.log(`Enviando comando para poner la alarma en estado: ${newState}`);
+
+    try {
+        const response = await fetch('http://localhost:3000/api/alarm/set-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: newState }),
+        });
+
+        if (!response.ok) throw new Error('La respuesta del servidor no fue OK');
+
+        const result = await response.json();
+
+        if (result.success) {
+            isAlarmSystemArmed = (newState === 'active');
+            // Guardar estado en localStorage para persistencia
+            localStorage.setItem('alarmSystemArmed', isAlarmSystemArmed);
+            updateAlarmUI();
+            console.log(`✅ Comando procesado. Nuevo estado: ${newState}`);
+        } else {
+            alert('Error al cambiar el estado de la alarma: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error de red al intentar cambiar el estado:', error);
+        alert('Error de conexión con el servidor. No se pudo cambiar el estado de la alarma.');
+    }
+}
+
+// --- NUEVO: Sincronizar estado de alarma con el backend ---
+async function syncAlarmState() {
+    try {
+        const response = await fetch('http://localhost:3000/api/alarm/get-state');
+        if (!response.ok) {
+            console.warn('⚠️ No se pudo obtener el estado de la alarma del backend');
+            return;
+        }
+        
+        const result = await response.json();
+        if (result.success && result.state !== undefined) {
+            const backendArmed = (result.state === 'active');
+            
+            // Solo actualizar si hay discrepancia
+            if (isAlarmSystemArmed !== backendArmed) {
+                console.log(`🔄 Sincronizando estado: Local=${isAlarmSystemArmed}, Backend=${backendArmed}`);
+                isAlarmSystemArmed = backendArmed;
+                localStorage.setItem('alarmSystemArmed', isAlarmSystemArmed);
+                updateAlarmUI();
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error sincronizando estado de alarma:', error);
+    }
+}
+
+// Asigna el evento 'click' a la tarjeta de control
+function setupAlarmControls() {
+    const controlCard = document.getElementById('alarm-control-card');
+    if (controlCard) {
+        controlCard.addEventListener('click', handleToggleAlarm);
+    }
+}
 // Cargar datos desde el backend
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
+        //showLoading(true);
         
-        const response = await fetch('http://localhost:3000/api/dashboard', {
-            timeout: 5000 // Timeout de 5 segundos
-        });
+        // Request only the real device (ESP32) to avoid showing seeded/simulated devices
+        const response = await fetch('http://localhost:3000/api/devices?device_id=ESP32_ALARM_01');
+        console.log('📡 Estado de la respuesta:', response.status);
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`Error HTTP: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
-        if (result.success) {
-            console.log('✅ Datos cargados desde el backend:', result.message);
-            console.log('📊 Fuente de datos:', result.dataSource || 'backend');
-            currentData = result.data;
-            updateKPIs();
-            updateLastUpdate();
-        } else {
-            throw new Error(result.message || 'Error desconocido del servidor');
+        console.log('📦 Datos recibidos:', result);
+
+        if (!result.success) {
+            throw new Error(result.message || 'Error en la respuesta del servidor');
         }
+
+        // Obtener conteo de eventos recientes (últimas 24 horas)
+        let eventsCount = 0;
+        try {
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+            const params = new URLSearchParams({
+                start: startOfDay.toISOString(),
+                end: endOfDay.toISOString()
+            });
+
+            const eventsResponse = await fetch(`http://localhost:3000/api/events/count?${params.toString()}`);
+            if (eventsResponse.ok) {
+                const eventsResult = await eventsResponse.json();
+                eventsCount = eventsResult.count || 0;
+            }
+        } catch (e) {
+            console.warn('No se pudo obtener el conteo de eventos:', e.message);
+        }
+
+        const devicesWithIndex = (result.data || []).map((device, index) => ({
+            ...device,
+            displayId: index + 1,
+            displayStatus: getDisplayStatus(device)
+        }));
+
+        // Actualizar datos globales
+        currentData = {
+            devices: devicesWithIndex,
+            kpis: {
+                systemStatus: { 
+                    current: devicesWithIndex.length > 0 ? 'Activo' : 'Sin dispositivos' 
+                },
+                activeDevices: { 
+                    current: devicesWithIndex.filter(d => (d.displayStatus || d.status) === 'online').length 
+                },
+                alerts: { 
+                    current: eventsCount
+                },
+                recentEvents: { 
+                    current: eventsCount
+                }
+            }
+        };
+
+        // Actualizar UI
+        updateKPIs();
+        updateDevicesChart();
+        populateDevicesTable();
+        updateLastUpdate();
+        //showLoading(false);
+
     } catch (error) {
-        console.error('❌ Error cargando datos del backend:', error.message);
-        console.log('🔄 Usando datos simulados como fallback...');
-        
-        // Fallback a datos simulados si el backend no está disponible
+        console.error('❌ Error:', error);
+        //showLoading(false);
         await loadDataFallback();
     }
 }
 
-// Función fallback con datos simulados
+// Función para cargar datos de respaldo
 async function loadDataFallback() {
-    // Simulación de carga de datos
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    console.log('📊 Cargando datos de respaldo...');
     currentData = {
+        devices: [
+            {
+                id: "DEV001",
+                name: "Sensor Puerta Principal",
+                type: "Contacto",
+                location: "Entrada",
+                status: "online",
+                value: "Cerrado",
+                lastReading: new Date().toLocaleString(),
+                battery: 85,
+                signal: "Buena"
+            },
+            {
+                id: "DEV002",
+                name: "Sensor Ventana Sala",
+                type: "Contacto",
+                location: "Sala",
+                status: "online",
+                value: "Cerrado",
+                lastReading: new Date().toLocaleString(),
+                battery: 90,
+                signal: "Excelente"
+            },
+            {
+                id: "DEV003",
+                name: "Sensor Movimiento",
+                type: "Movimiento",
+                location: "Pasillo",
+                status: "warning",
+                value: "Sin movimiento",
+                lastReading: new Date().toLocaleString(),
+                battery: 15,
+                signal: "Regular"
+            }
+        ],
         kpis: {
-            temperature: { current: 23.5 + Math.random() * 5, unit: '°C', trend: 'positive', change: 1.2 },
-            humidity: { current: 65 + Math.random() * 10, unit: '%', trend: 'negative', change: -2.1 },
-            activeDevices: { current: 12 + Math.floor(Math.random() * 3), total: 15, trend: 'positive', change: 3 },
-            alerts: { current: Math.floor(Math.random() * 5), critical: 0, warning: 2, trend: 'neutral' }
-        },
-        temperatureHistory: generateTemperatureHistory(),
-        devices: generateDevicesData(),
-        deviceStatus: {
-            online: 8,
-            offline: 2,
-            warning: 2
+            systemStatus: { current: 'Activo' },
+            activeDevices: { current: 2 },
+            alerts: { current: 1 },
+            recentEvents: { current: 0 }
         }
     };
-    
+
+    currentData.devices.forEach((device, index) => {
+        device.displayId = index + 1;
+        device.displayStatus = getDisplayStatus(device);
+    });
+
+    // Actualizar UI con datos de respaldo
     updateKPIs();
+    updateDevicesChart();
+    populateDevicesTable();
     updateLastUpdate();
-    console.log('📊 Datos simulados cargados');
+}
+
+function updateKPIs() {
+    const kpis = currentData.kpis;
+    
+    // Helper function to safely update element
+    const updateElement = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        } else {
+            console.warn(`⚠️ Elemento KPI no encontrado: ${id}`);
+        }
+    };
+
+    // Update each KPI safely
+    updateElement('systemStatus', kpis.systemStatus?.current || 'N/A');
+    updateElement('activeDevices', kpis.activeDevices?.current || '0');
+    updateElement('alerts', kpis.alerts?.current || '0');
+    updateElement('recentEvents', kpis.recentEvents?.current || '0');
 }
 
 // Actualizar información de última actualización
@@ -249,110 +589,12 @@ function updateLastUpdate() {
 }
 
 // Generar datos históricos de temperatura
-function generateTemperatureHistory() {
-    const history = [];
-    const now = new Date();
-    
-    for (let i = 23; i >= 0; i--) {
-        const time = new Date(now.getTime() - i * 60 * 60 * 1000);
-        const baseTemp = 23;
-        const variation = Math.sin(i * 0.5) * 3 + Math.random() * 2;
-        
-        history.push({
-            time: time.toISOString(),
-            temperature: Math.round((baseTemp + variation) * 10) / 10,
-            humidity: Math.round((65 + Math.sin(i * 0.3) * 10 + Math.random() * 5) * 10) / 10
-        });
-    }
-    
-    return history;
-}
 
 // Generar datos de dispositivos
-function generateDevicesData() {
-    const deviceTypes = ['Sensor Temperatura', 'Sensor Humedad', 'Cámara', 'Actuador', 'Gateway'];
-    const locations = ['Jardín', 'Cocina', 'Sala', 'Dormitorio', 'Garage', 'Terraza'];
-    const statuses = ['online', 'offline', 'warning'];
-    const devices = [];
-    
-    for (let i = 1; i <= 12; i++) {
-        const type = deviceTypes[Math.floor(Math.random() * deviceTypes.length)];
-        const location = locations[Math.floor(Math.random() * locations.length)];
-        const status = statuses[Math.floor(Math.random() * statuses.length)];
-        
-        const device = {
-            id: `DEV-${i.toString().padStart(3, '0')}`,
-            name: `${type} ${location}`,
-            type: type,
-            location: location,
-            status: status,
-            lastReading: new Date(Date.now() - Math.random() * 3600000).toLocaleString('es-ES'),
-            value: type.includes('Temperatura') ? (20 + Math.random() * 15).toFixed(1) :
-                   type.includes('Humedad') ? (50 + Math.random() * 30).toFixed(0) :
-                   (Math.random() * 100).toFixed(1),
-            unit: type.includes('Temperatura') ? '°C' :
-                  type.includes('Humedad') ? '%' : '',
-            battery: Math.floor(20 + Math.random() * 80),
-            signal: ['excelente', 'buena', 'regular'][Math.floor(Math.random() * 3)]
-        };
-        devices.push(device);
-    }
-    
-    return devices;
-}
-
-// Actualizar KPIs
-function updateKPIs() {
-    try {
-        // Manejar ambos formatos de datos (backend y fallback)
-        const temp = currentData.kpis.temperature;
-        const humidity = currentData.kpis.humidity;
-        const devices = currentData.kpis.activeDevices;
-        const alerts = currentData.kpis.alerts;
-        
-        // Temperatura
-        const tempValue = typeof temp === 'object' ? temp.current : temp;
-        const tempElement = document.getElementById('temperature');
-        if (tempElement) {
-            tempElement.textContent = `${tempValue.toFixed(1)}°C`;
-        }
-        
-        // Humedad
-        const humidityValue = typeof humidity === 'object' ? humidity.current : humidity;
-        const humidityElement = document.getElementById('humidity');
-        if (humidityElement) {
-            humidityElement.textContent = `${humidityValue.toFixed(0)}%`;
-        }
-        
-        // Dispositivos activos
-        const devicesValue = typeof devices === 'object' ? devices.current : devices;
-        const devicesElement = document.getElementById('activeDevices');
-        if (devicesElement) {
-            devicesElement.textContent = devicesValue;
-        }
-        
-        // Alertas
-        const alertsValue = typeof alerts === 'object' ? alerts.current : alerts;
-        const alertsElement = document.getElementById('alerts');
-        if (alertsElement) {
-            alertsElement.textContent = alertsValue;
-        }
-        
-        console.log('📊 KPIs actualizados:', { 
-            temp: tempValue, 
-            humidity: humidityValue, 
-            devices: devicesValue, 
-            alerts: alertsValue 
-        });
-    } catch (error) {
-        console.error('❌ Error actualizando KPIs:', error);
-    }
-}
 
 // Inicializar gráficos
 function initializeCharts() {
     try {
-        initializeTemperatureChart();
         initializeDevicesChart();
         console.log('📈 Gráficos inicializados');
     } catch (error) {
@@ -360,98 +602,6 @@ function initializeCharts() {
     }
 }
 
-// Gráfico de temperatura
-function initializeTemperatureChart() {
-    const ctx = document.getElementById('temperatureChart');
-    if (!ctx) {
-        console.warn('⚠️ Elemento temperatureChart no encontrado');
-        return;
-    }
-    
-    const chartCtx = ctx.getContext('2d');
-    
-    const labels = currentData.temperatureHistory.map(item => {
-        return new Date(item.time).toLocaleTimeString('es-ES', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    });
-    
-    const temperatures = currentData.temperatureHistory.map(item => item.temperature);
-    const humidities = currentData.temperatureHistory.map(item => item.humidity);
-    
-    temperatureChart = new Chart(chartCtx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Temperatura (°C)',
-                data: temperatures,
-                borderColor: '#ef4444',
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                tension: 0.4,
-                fill: true,
-                yAxisID: 'y'
-            }, {
-                label: 'Humedad (%)',
-                data: humidities,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                tension: 0.4,
-                fill: true,
-                yAxisID: 'y1'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'top',
-                },
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    title: {
-                        display: true,
-                        text: 'Hora'
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Temperatura (°C)'
-                    },
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Humedad (%)'
-                    },
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                }
-            },
-            interaction: {
-                mode: 'nearest',
-                axis: 'x',
-                intersect: false
-            }
-        }
-    });
-}
 
 // Gráfico de estado de dispositivos
 function initializeDevicesChart() {
@@ -463,11 +613,18 @@ function initializeDevicesChart() {
     
     const chartCtx = ctx.getContext('2d');
     
-    // Calcular estados de dispositivos
     const statusCount = { online: 0, offline: 0, warning: 0 };
-    currentData.devices.forEach(device => {
-        statusCount[device.status] = (statusCount[device.status] || 0) + 1;
-    });
+    if(currentData.devices) {
+        currentData.devices.forEach(device => {
+            const statusKey = (device.displayStatus || device.status || 'offline').toLowerCase();
+            statusCount[statusKey] = (statusCount[statusKey] || 0) + 1;
+        });
+    }
+    
+    // Si ya existe un gráfico, destrúyelo antes de crear uno nuevo
+    if (devicesChart) {
+        devicesChart.destroy();
+    }
     
     devicesChart = new Chart(chartCtx, {
         type: 'doughnut',
@@ -480,35 +637,41 @@ function initializeDevicesChart() {
                     statusCount.warning
                 ],
                 backgroundColor: [
-                    '#22c55e',
-                    '#ef4444',
-                    '#f59e0b'
+                    '#22c55e', // Verde para 'En línea'
+                    '#ef4444', // Rojo para 'Fuera de línea'
+                    '#f59e0b'  // Naranja para 'Advertencia'
                 ],
-                borderWidth: 2,
-                borderColor: '#ffffff'
+                borderWidth: 4, // Borde más grueso para mejor separación
+                borderColor: '#1e293b' // Color de fondo del contenedor
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '70%', // Hacer el donut un poco más delgado
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
                         padding: 20,
-                        usePointStyle: true
+                        usePointStyle: true,
+                        color: '#cbd5e1' // <-- CAMBIO CLAVE: Color de la leyenda
+                    }
+                },
+                title: { // <-- NUEVO: Para controlar el título
+                    display: true,
+                    text: 'Estado de Dispositivos',
+                    color: '#e2e8f0', // <-- CAMBIO CLAVE: Color del título
+                    font: {
+                        size: 18,
+                        weight: '600'
+                    },
+                    padding: {
+                        bottom: 20
                     }
                 },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    }
+                    // (Tu configuración de tooltip es correcta, no necesita cambios)
                 }
             }
         }
@@ -525,28 +688,49 @@ function populateDevicesTable() {
     
     tbody.innerHTML = '';
     
-    currentData.devices.forEach(device => {
+    currentData.devices.forEach((device, index) => {
+        const displayId = device.displayId ?? (index + 1);
+        const lastReadingIso = device.lastReading || device.last_reading;
+        const lastReading = formatDateTime(lastReadingIso);
+        const relativeTime = formatRelativeTime(lastReadingIso);
         const row = tbody.insertRow();
         
         row.innerHTML = `
-            <td>${device.id}</td>
-            <td>${device.name}</td>
-            <td>${device.type}</td>
-            <td><span class="status-badge status-${device.status}">${getStatusText(device.status)}</span></td>
-            <td>${device.lastReading}</td>
-            <td>${device.value}${device.unit || getUnitForDevice(device.type)}</td>
+            <td>${displayId}</td>
             <td>
-                <button class="btn-action" onclick="viewDevice('${device.id}')">
-                    <i class="fas fa-eye"></i> Ver
-                </button>
-                <button class="btn-action" onclick="editDevice('${device.id}')">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
+                <div class="device-name">${device.name}</div>
             </td>
+            <td><span class="status-badge status-${device.displayStatus || device.status}">${getStatusText(device.displayStatus || device.status)}</span></td>
+            <td>${lastReading}</td>
+            <td>${relativeTime}</td>
         `;
     });
     
     console.log(`📊 Tabla de dispositivos actualizada: ${currentData.devices.length} dispositivos`);
+}
+
+function getDisplayStatus(device) {
+    const rawStatus = (device.status || 'offline').toLowerCase();
+    if (rawStatus !== 'offline') {
+        return rawStatus;
+    }
+
+    const lastReadingIso = device.lastReading || device.last_reading || device.last_seen;
+    if (!lastReadingIso) {
+        return rawStatus;
+    }
+
+    const lastReadingDate = new Date(lastReadingIso);
+    if (Number.isNaN(lastReadingDate.getTime())) {
+        return rawStatus;
+    }
+
+    const diffMs = Date.now() - lastReadingDate.getTime();
+    if (diffMs < DEVICE_OFFLINE_GRACE_MS) {
+        return 'online';
+    }
+
+    return rawStatus;
 }
 
 // Obtener texto de estado
@@ -560,12 +744,61 @@ function getStatusText(status) {
 }
 
 // Obtener unidad para tipo de dispositivo
-function getUnitForDevice(type) {
-    if (type.includes('Temperatura')) return '°C';
-    if (type.includes('Humedad')) return '%';
-    if (type.includes('Presión')) return 'hPa';
-    if (type.includes('Luz')) return 'lux';
+function getUnitForDevice(type = '') {
+    if (!type || typeof type !== 'string') return '';
+    const normalized = type.toLowerCase();
+    if (normalized.includes('temperatura')) return '°C';
+    if (normalized.includes('humedad')) return '%';
+    if (normalized.includes('presión') || normalized.includes('presion')) return 'hPa';
+    if (normalized.includes('luz')) return 'lux';
+    if (normalized.includes('pir')) return 'det';
     return '';
+}
+
+function formatDateTime(value) {
+    if (!value) return 'Sin registros';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+    return date.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function formatRelativeTime(value) {
+    if (!value) return 'Sin registros';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return 'Sin registros';
+    }
+    const diffMs = Math.max(0, Date.now() - date.getTime());
+
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return `hace ${seconds}s`;
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `hace ${minutes}m`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours}h`;
+
+    const days = Math.floor(hours / 24);
+    return `hace ${days}d`;
+}
+
+function formatDeviceValue(device) {
+    if (!device) return '—';
+    const rawValue = (device.value ?? device.lastValue ?? null);
+    if (rawValue === null || rawValue === undefined || rawValue === 'null') {
+        return '—';
+    }
+    const unit = device.unit || getUnitForDevice(device.type || '');
+    return `${rawValue}${unit ? ' ' + unit : ''}`;
 }
 
 // Configurar event listeners
@@ -577,13 +810,6 @@ function setupEventListeners() {
             refreshBtn.addEventListener('click', refreshData);
         }
         
-        // Selector de rango de tiempo
-        const timeRangeSelect = document.getElementById('temperatureTimeRange');
-        if (timeRangeSelect) {
-            timeRangeSelect.addEventListener('change', function(e) {
-                updateTemperatureChart(e.target.value);
-            });
-        }
         
         // Botón de exportar
         const exportBtn = document.querySelector('.btn-export');
@@ -594,19 +820,18 @@ function setupEventListeners() {
         // Navegación del sidebar
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                // Remover clase active de todos los elementos
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                // Agregar clase active al elemento clickeado
-                this.parentElement.classList.add('active');
-                
-                // Navegación
-                const section = this.getAttribute('href').substring(1);
-                console.log(`📍 Navegando a: ${section}`);
+                const href = this.getAttribute('href');
+                // Solo prevenir el comportamiento por defecto si es un anchor interno (hash)
+                if (href && href.startsWith('#')) {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    this.parentElement.classList.add('active');
+                    const section = href.substring(1);
+                    console.log(`📍 Navegando a: ${section}`);
+                }
+                // Si es un archivo .html, dejar que el navegador navegue normalmente
             });
         });
         
@@ -629,11 +854,27 @@ function updateDateTime() {
             minute: '2-digit'
         };
         
-        const datetimeElement = document.getElementById('datetime');
-        if (datetimeElement) {
-            datetimeElement.textContent = now.toLocaleDateString('es-ES', options);
+        let datetimeElement = document.getElementById('datetime');
+        if (!datetimeElement) {
+            datetimeElement = document.createElement('small');
+            datetimeElement.id = 'datetime';
+            datetimeElement.style.cssText = `
+                color: #64748b;
+                font-size: 0.75rem;
+                margin-left: 1rem;
+                padding: 0.25rem 0.5rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                backdrop-filter: blur(5px);
+                display: inline-block;
+            `;
+            const headerControls = document.querySelector('.header-controls');
+            if (headerControls) {
+                headerControls.appendChild(datetimeElement);
+            }
         }
-        
+        datetimeElement.textContent = `${now.toLocaleDateString('es-ES', options)}`;
+
         // Actualizar cada minuto
         setTimeout(updateDateTime, 60000);
     } catch (error) {
@@ -655,6 +896,10 @@ function showLoading(show) {
 
 // Refrescar datos
 async function refreshData() {
+    if (refreshInProgress) {
+        return; // hay una actualización en curso
+    }
+    refreshInProgress = true;
     const refreshBtn = document.getElementById('refreshBtn');
     const icon = refreshBtn ? refreshBtn.querySelector('i') : null;
     
@@ -666,15 +911,14 @@ async function refreshData() {
     try {
         console.log('🔄 Refrescando datos...');
         await loadData();
+        await fetchLatestEvent(); // --- NUEVO: Refresca también el último evento ---
+        await syncAlarmState(); // --- NUEVO: Sincronizar estado de alarma con backend ---
         
-        // Actualizar gráficos
-        updateTemperatureChart();
-        updateDevicesChart();
-        
-        // Actualizar tabla
-        populateDevicesTable();
-        
-        console.log('✅ Datos refrescados exitosamente');
+    // Actualizar gráfico de dispositivos
+    updateDevicesChart();
+    // Actualizar tabla
+    populateDevicesTable();
+    console.log('✅ Datos refrescados exitosamente');
     } catch (error) {
         console.error('❌ Error refrescando datos:', error);
     } finally {
@@ -684,34 +928,11 @@ async function refreshData() {
                 icon.style.animation = '';
             }, 1000);
         }
+        refreshInProgress = false;
     }
 }
 
-// Actualizar gráfico de temperatura
-function updateTemperatureChart(timeRange = '24h') {
-    if (!temperatureChart) return;
-    
-    try {
-        // Filtrar datos según el rango de tiempo (implementación futura)
-        const filteredData = currentData.temperatureHistory;
-        
-        const labels = filteredData.map(item => {
-            return new Date(item.time).toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        });
-        
-        temperatureChart.data.labels = labels;
-        temperatureChart.data.datasets[0].data = filteredData.map(item => item.temperature);
-        temperatureChart.data.datasets[1].data = filteredData.map(item => item.humidity);
-        temperatureChart.update();
-        
-        console.log('📈 Gráfico de temperatura actualizado');
-    } catch (error) {
-        console.error('❌ Error actualizando gráfico de temperatura:', error);
-    }
-}
+
 
 // Actualizar gráfico de dispositivos
 function updateDevicesChart() {
@@ -721,7 +942,8 @@ function updateDevicesChart() {
         // Contar estados de dispositivos
         const statusCount = { online: 0, offline: 0, warning: 0 };
         currentData.devices.forEach(device => {
-            statusCount[device.status] = (statusCount[device.status] || 0) + 1;
+            const statusKey = (device.displayStatus || device.status || 'offline').toLowerCase();
+            statusCount[statusKey] = (statusCount[statusKey] || 0) + 1;
         });
         
         devicesChart.data.datasets[0].data = [
@@ -749,9 +971,10 @@ async function viewDevice(deviceId) {
             const result = await response.json();
             if (result.success) {
                 const device = result.data;
-                const lastReading = new Date(device.last_reading).toLocaleString('es-ES');
-                
-                alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${device.value || 'N/A'} ${device.unit || ''}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
+                const lastReading = formatDateTime(device.last_reading || device.lastReading);
+                const valueLabel = formatDeviceValue(device);
+
+                alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${valueLabel}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
                 return;
             }
         }
@@ -762,7 +985,9 @@ async function viewDevice(deviceId) {
     // Fallback a datos locales
     const device = currentData.devices.find(d => d.id === deviceId);
     if (device) {
-        alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location || 'No especificada'}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${device.value} ${device.unit || ''}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${device.lastReading}`);
+        const lastReading = formatDateTime(device.lastReading || device.last_reading);
+        const valueLabel = formatDeviceValue(device);
+        alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location || 'No especificada'}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${valueLabel}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${lastReading}`);
     } else {
         alert('❌ Dispositivo no encontrado');
     }
@@ -948,40 +1173,7 @@ document.addEventListener('visibilitychange', function() {
 });
 
 // Función para simular datos en tiempo real (opcional)
-function startRealTimeSimulation() {
-    setInterval(() => {
-        try {
-            // Actualizar KPIs con pequeñas variaciones
-            if (currentData.kpis.temperature.current) {
-                currentData.kpis.temperature.current += (Math.random() - 0.5) * 0.5;
-                currentData.kpis.humidity.current += (Math.random() - 0.5) * 2;
-                
-                // Mantener valores en rangos realistas
-                currentData.kpis.temperature.current = Math.max(15, Math.min(35, currentData.kpis.temperature.current));
-                currentData.kpis.humidity.current = Math.max(30, Math.min(90, currentData.kpis.humidity.current));
-                
-                updateKPIs();
-                
-                // Agregar nuevo punto al historial
-                const now = new Date();
-                currentData.temperatureHistory.push({
-                    time: now.toISOString(),
-                    temperature: currentData.kpis.temperature.current,
-                    humidity: currentData.kpis.humidity.current
-                });
-                
-                // Mantener solo las últimas 24 horas
-                if (currentData.temperatureHistory.length > 24) {
-                    currentData.temperatureHistory.shift();
-                }
-                
-                updateTemperatureChart();
-            }
-        } catch (error) {
-            console.error('❌ Error en simulación tiempo real:', error);
-        }
-    }, 60000); // Actualizar cada minuto
-}
+// ...eliminada simulación de temperatura y humedad...
 
 // Iniciar simulación en tiempo real (descomenta si quieres datos que cambien automáticamente)
 //startRealTimeSimulation();

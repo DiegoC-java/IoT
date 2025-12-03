@@ -1,3 +1,366 @@
+/* Fondo visual atractivo para la página de sensores */
+body {
+    background: linear-gradient(120deg, #1e293b 0%, #334155 50%, #64748b 100%);
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Detalles decorativos suaves (burbujas) */
+.iot-bg-bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.18;
+    z-index: 0;
+}
+.iot-bg-bubble.b1 {
+    width: 320px; height: 320px;
+    left: -120px; top: 80px;
+    background: radial-gradient(circle, #2563ebbb 0%, #1e293b 100%);
+}
+.iot-bg-bubble.b2 {
+    width: 220px; height: 220px;
+    right: -80px; top: 320px;
+    background: radial-gradient(circle, #10b981bb 0%, #334155 100%);
+}
+.iot-bg-bubble.b3 {
+    width: 180px; height: 180px;
+    left: 40vw; bottom: -90px;
+    background: radial-gradient(circle, #f59e0bbb 0%, #64748b 100%);
+}
+/* Iconos y estilos extra para la página de sensores */
+.sensor-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+
+/* Estilos para la página de benchmarks */
+.main-content h2 {
+    color: #1e293b;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.main-content h3 {
+    color: #2563eb;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+    margin-top: 1.5rem;
+}
+
+table {
+    background: rgba(255,255,255,0.95);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(30,41,59,0.08);
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 0.8rem 1.2rem;
+    text-align: center;
+}
+
+th {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    border-bottom: 2px solid #334155;
+}
+
+tr {
+    border-bottom: 1px solid #cbd5e1;
+}
+
+tr:last-child {
+    border-bottom: none;
+}
+
+td {
+    color: #334155;
+    font-size: 0.98rem;
+}
+
+/* Responsive para tablas */
+@media (max-width: 700px) {
+    table {
+        width: 98% !important;
+    }
+    th, td {
+        padding: 0.5rem 0.3rem;
+        font-size: 0.95rem;
+    }
+}
+.sensor-mov {
+    background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+    color: #f59e0b;
+}
+.sensor-vib {
+    background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+    color: #10b981;
+}
+.sensor-card {
+    position: relative;
+    overflow: hidden;
+    border: 1.5px solid #e0e7ef;
+    box-shadow: 0 4px 24px 0 rgba(37,99,235,0.04);
+    transition: box-shadow 0.3s, transform 0.3s;
+}
+.sensor-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(37,99,235,0.10);
+    transform: translateY(-4px) scale(1.03);
+    border-color: #2563eb33;
+}
+.sensor-card h3 {
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+}
+.sensor-card .btn-action {
+    margin-top: 0.5rem;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+}
+.sensor-card .btn-action.active {
+    background: var(--danger-color);
+    color: #fff;
+}
+.sensor-card .btn-action:active {
+    transform: scale(0.97);
+}
+/* Estilos para la página de control de sensores */
+.sensors-section {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+}
+
+.sensors-section h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+
+.alerts-page {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.alerts-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    background: #232e41cc;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 1.75rem;
+    box-shadow: var(--shadow-md);
+}
+
+.alerts-hero .eyebrow {
+    text-transform: uppercase;
+    color: #60a5fa;
+    letter-spacing: 0.15rem;
+    font-size: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.alerts-hero .subtitle {
+    color: #cbd5f5;
+    max-width: 540px;
+}
+
+.alerts-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(15,23,42,0.65);
+    border-radius: 12px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid rgba(148,163,184,0.2);
+}
+
+.alerts-controls label {
+    font-size: 0.85rem;
+    color: #cbd5f5;
+}
+
+.select-control {
+    background: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.4rem 1.5rem 0.4rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+.alerts-history-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.alerts-table-card {
+    background: #232e41cc;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #e2e8f0;
+}
+
+.section-subtitle {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.muted-text {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.muted-text i {
+    color: #60a5fa;
+}
+
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: #94a3b8;
+}
+
+.empty-state.visible {
+    display: flex;
+}
+
+.empty-state i {
+    font-size: 1.5rem;
+    color: #475569;
+}
+
+.event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.event-badge.event-motion {
+    background: rgba(59,130,246,0.15);
+    color: #60a5fa;
+}
+
+.event-badge.event-vibration {
+    background: rgba(16,185,129,0.15);
+    color: #34d399;
+}
+
+.event-badge.event-alarm {
+    background: rgba(248,113,113,0.18);
+    color: #f87171;
+}
+
+.event-badge.event-info {
+    background: rgba(251,191,36,0.18);
+    color: #fbbf24;
+}
+
+.event-badge.event-generic {
+    background: rgba(148,163,184,0.2);
+    color: #e2e8f0;
+}
+
+.btn-refresh.is-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.btn-refresh.is-loading i {
+    animation: spin 1s linear infinite;
+}
+
+.sensors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+}
+
+.sensor-card {
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+}
+
+.sensor-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.sensor-card .btn-action {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.sensor-card .btn-action.active {
+    background: var(--danger-color);
+}
+
+.sensor-card .btn-action:hover {
+    background: #1d4ed8;
+}
 /* Reset y configuraciones básicas */
 * {
     margin: 0;
@@ -97,6 +460,38 @@ body {
     transform: translateY(-1px);
 }
 
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--danger-color);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-right: 1rem;
+    transition: var(--transition);
+}
+
+.btn-logout:hover {
+    background: #b91c1c;
+    transform: translateY(-1px);
+}
+
+.datetime-chip {
+    color: #64748b;
+    font-size: 0.75rem;
+    margin-right: 1rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    backdrop-filter: blur(5px);
+    display: inline-block;
+}
+
 .datetime {
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -110,10 +505,13 @@ body {
     left: 0;
     width: 280px;
     height: calc(100vh - 70px);
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
+    background: rgba(36, 54, 94, 0.72);
+    border-right: 2.5px solid #2563eb44;
     overflow-y: auto;
     z-index: 999;
+    box-shadow: 4px 0 32px 0 rgba(37,99,235,0.08);
+    backdrop-filter: blur(8px);
+    transition: background 0.3s, border 0.3s;
 }
 
 .nav-menu ul {
@@ -131,26 +529,37 @@ body {
     gap: 0.75rem;
     padding: 0.75rem 1.5rem;
     text-decoration: none;
-    color: var(--text-secondary);
+    color: #e0e7ef;
+    font-weight: 500;
+    letter-spacing: 0.5px;
     transition: var(--transition);
     border-right: 3px solid transparent;
+    border-radius: 8px 0 0 8px;
+    margin: 0.25rem 0;
+    position: relative;
+    z-index: 1;
 }
 
 .nav-link:hover {
-    background: var(--bg-primary);
-    color: var(--primary-color);
+    background: rgba(37,99,235,0.10);
+    color: #60a5fa;
+    border-right: 3px solid #2563eb;
+    box-shadow: 2px 0 12px 0 rgba(37,99,235,0.08);
 }
 
 .nav-item.active .nav-link {
-    background: var(--bg-primary);
-    color: var(--primary-color);
-    border-right-color: var(--primary-color);
-    font-weight: 600;
+    background: linear-gradient(90deg, #2563eb33 0%, #232e41cc 100%);
+    color: #60a5fa;
+    border-right-color: #2563eb;
+    font-weight: 700;
+    box-shadow: 2px 0 16px 0 rgba(37,99,235,0.10);
 }
 
 .nav-link i {
     font-size: 1.125rem;
     width: 20px;
+    color: #60a5fa;
+    filter: drop-shadow(0 1px 2px #232e41cc);
 }
 
 /* Contenido principal */
@@ -159,6 +568,9 @@ body {
     margin-top: 70px;
     padding: 2rem;
     min-height: calc(100vh - 70px);
+    background: rgba(30,41,59,0.18);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px 0 rgba(30,41,59,0.10);
 }
 
 /* Sección KPI */
@@ -173,11 +585,11 @@ body {
 }
 
 .kpi-card {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
+    background: #232e41cc;
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
     transition: var(--transition);
 }
 
@@ -201,6 +613,19 @@ body {
     justify-content: center;
     font-size: 1.5rem;
     color: white;
+}
+
+.kpi-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    outline: none;
+    border: none;
 }
 
 .kpi-card:nth-child(1) .kpi-icon {
@@ -267,11 +692,11 @@ body {
 }
 
 .chart-container {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
+    background: #232e41cc;
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
 }
 
 .chart-header {
@@ -307,10 +732,10 @@ body {
 }
 
 .data-container {
-    background: var(--bg-secondary);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    background: #232e41cc;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px 0 rgba(30,41,59,0.10);
+    border: 1.5px solid #334155;
     overflow: hidden;
 }
 
@@ -364,15 +789,29 @@ body {
 }
 
 .data-table th {
-    background: var(--bg-primary);
+    background: #1e293b;
     font-weight: 600;
-    color: var(--text-primary);
+    color: #e0e7ef;
     font-size: 0.875rem;
+
+.device-name {
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.device-id {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    margin-top: 0.15rem;
+}
 }
 
 .data-table td {
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: #e0e7ef;
+    background: #232e41cc;
+    border-bottom: 1px solid #334155;
 }
 
 .status-badge {
@@ -453,6 +892,77 @@ body {
     color: var(--text-secondary);
     font-weight: 500;
 }
+
+/* ============================ */
+/* Historial de alertas (UI)    */
+/* ============================ */
+.alerts-page .alerts-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.alerts-hero .eyebrow {
+    color: #60a5fa;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.alerts-hero h2 {
+    color: #e2e8f0; /* mejora contraste en fondo oscuro */
+    font-weight: 700;
+}
+
+.alerts-hero .subtitle {
+    color: #94a3b8;
+    margin-top: 0.25rem;
+}
+
+.alerts-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.select-control {
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+}
+
+.section-subtitle {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.muted-text { color: #94a3b8; font-size: 0.8rem; }
+
+.empty-state { display: none; text-align: center; padding: 1rem; color: #94a3b8; }
+.empty-state.visible { display: block; }
+
+.event-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.event-badge.event-motion { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.event-badge.event-vibration { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.event-badge.event-alarm { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.event-badge.event-info { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
@@ -563,4 +1073,163 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+/* Estilos para la tarjeta de evento reciente */
+#recent-event-display {
+    font-size: 0.9rem;
+    color: #334155;
+    margin-top: 4px;
+}
+
+#recent-event-display .event-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+#recent-event-display .event-time {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+#recent-event-display .no-events {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* ======================================== */
+/* --- ESTILOS MEJORADOS PARA EL DASHBOARD --- */
+/* ======================================== */
+
+/* Mejora general para el título de todas las tarjetas KPI */
+.kpi-info h3 {
+    font-size: 0.875rem;
+    color: #cbd5e1; /* <-- CAMBIO: Un gris más claro para mejor contraste */
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase; /* Opcional: para un look más de dashboard */
+    letter-spacing: 0.5px;
+}
+
+/* Contenedor específico para la información del evento reciente */
+#recent-event-display {
+    font-size: 1rem;    /* Aumenta el tamaño base */
+    color: #f1f5f9;     /* Un color casi blanco para el texto principal */
+    margin-top: 8px;    /* Más espacio desde el título */
+}
+
+#recent-event-display .event-details {
+    display: flex;
+    align-items: center;
+    gap: 10px;          /* Un poco más de espacio entre icono y texto */
+    font-weight: 600;   /* Texto en negrita para la descripción */
+    font-size: 1.1rem;  /* Un poco más grande para que sea el foco */
+}
+
+/* Colores e iconos específicos para cada tipo de evento */
+#recent-event-display .event-details.motion {
+    color: #f87171; /* Rojo claro para movimiento */
+}
+
+#recent-event-display .event-details.vibration {
+    color: #facc15; /* Amarillo/Dorado para vibración */
+}
+
+#recent-event-display .event-time {
+    font-size: 0.8rem;
+    color: #94a3b8;     /* Un gris más suave para la hora */
+    margin-top: 4px;
+    padding-left: 34px; /* Alinea la hora con el texto de la descripción (ajusta si es necesario) */
+}
+
+#recent-event-display .no-events {
+    font-size: 0.9rem;
+    color: #64748b;     /* Mantenemos un gris oscuro para el mensaje por defecto */
+    font-style: italic;
+}
+
+/* ======================================================= */
+/* --- CORRECCIÓN FINAL DE COLORES DEL DASHBOARD (V3) --- */
+/* ======================================================= */
+
+/* 1. Apunta a los TÍTULOS de TODAS las tarjetas (h3 y small) */
+.kpi-card h3,
+.kpi-card small {
+    color: #cbd5e1; /* Gris claro para un buen contraste */
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+/* 2. Apunta a los VALORES principales ("Activo", "0", etc.) */
+/* Estamos apuntando al párrafo <p> que está dentro de .kpi-info */
+.kpi-card .kpi-info p {
+    color: #ffffff; /* Blanco para máximo contraste */
+    font-size: 1.875rem;
+    font-weight: 700;
+}
+
+
+/* --- Estilos para la tarjeta de "Última Alerta" (ya deberían estar bien, pero los incluimos para asegurar) --- */
+
+#recent-event-display .event-details {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+#recent-event-display .event-details.motion {
+    color: #f87171; /* Rojo claro */
+}
+
+#recent-event-display .event-details.vibration {
+    color: #facc15; /* Amarillo */
+}
+
+#recent-event-display .event-time {
+    font-size: 0.8rem;
+    color: #94a3b8; /* Gris suave */
+    margin-top: 4px;
+    padding-left: 34px;
+}
+/* ======================================================= */
+/* --- CORRECCIÓN DE COLOR PARA TÍTULO DE LA TABLA --- */
+/* ======================================================= */
+
+.data-header h3 {
+    color: #e2e8f0; /* Color blanco/gris claro, igual que el título del gráfico */
+}
+
+/* ======================================== */
+/* --- ESTILOS PARA TARJETA DE CONTROL --- */
+/* ======================================== */
+
+/* Hace que la tarjeta sea clickable */
+#alarm-control-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Efecto al pasar el mouse */
+#alarm-control-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-color: #60a5fa; /* Un borde azul para indicar acción */
+}
+
+/* Estilos para el ícono cuando el sistema está ARMADO */
+#system-status-icon.armed {
+    background: linear-gradient(135deg, #f87171, #ef4444); /* Rojo de alarma */
+}
+
+/* Estilos para el ícono cuando el sistema está DESARMADO */
+#system-status-icon.disarmed {
+    background: linear-gradient(135deg, #4ade80, #22c55e); /* Verde de seguridad */
 }

@@ -139,32 +139,93 @@ async function handleLogin(e) {
     try {
         console.log('🔐 Intentando autenticación...');
         
-        // Intentar autenticación con el backend primero
+        // PASO 1: Intentar login
         const backendAuth = await authenticateWithBackend(username, password);
         
-        if (backendAuth.success) {
-            console.log('✅ Autenticación exitosa con backend');
-            await handleSuccessfulLogin(backendAuth.user, rememberMe);
-        } else {
-            console.log('⚠️ Backend falló, intentando autenticación local...');
-            // Fallback a autenticación local
-            const localAuth = authenticateLocally(username, password);
+        // PASO 2: Si el backend requiere MFA, mostrar campo
+        if (backendAuth.mfaRequired) {
+            console.log('🔐 MFA requerido, mostrando campo de código...');
+            console.log('Buscando elemento mfaGroup...');
+            const mfaGroup = document.getElementById('mfaGroup');
+            console.log('Elemento encontrado:', mfaGroup);
             
-            if (localAuth.success) {
-                console.log('✅ Autenticación exitosa local');
-                await handleSuccessfulLogin(localAuth.user, rememberMe);
-            } else {
+            if (!mfaGroup) {
+                console.error('❌ ERROR: No se encontró elemento mfaGroup en el DOM');
+                showAlert('Error: Campo MFA no encontrado en la página', 'error');
+                setLoadingState(false);
+                return;
+            }
+            
+            showAlert('Se envió un código de autenticación a tu correo', 'info');
+            mfaGroup.style.display = 'block';
+            console.log('mfaGroup display:', mfaGroup.style.display);
+            
+            window.mfaEmail = backendAuth.email;
+            window.mfaUsername = username;
+            window.mfaRememberMe = rememberMe;
+            
+            // Cambiar el botón para MFA
+            const loginBtn = document.getElementById('loginBtn');
+            if (!loginBtn) {
+                console.error('❌ ERROR: No se encontró botón loginBtn');
+                setLoadingState(false);
+                return;
+            }
+            
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.onsubmit = function(ev) {
+                    ev.preventDefault();
+                    handleMfaLogin(username, rememberMe);
+                    return false;
+                };
+            }
+            
+            loginBtn.type = 'button';
+            loginBtn.textContent = 'Validar código';
+            loginBtn.onclick = async function(ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                await handleMfaLogin(username, rememberMe);
+            };
+            
+            // Cambiar el foco al campo de código
+            setTimeout(() => {
+                const mfaCode = document.getElementById('mfaCode');
+                if (mfaCode) {
+                    mfaCode.focus();
+                    console.log('✅ Focus en mfaCode');
+                } else {
+                    console.error('❌ ERROR: No se encontró campo mfaCode');
+                }
+            }, 100);
+            
+            setLoadingState(false);
+            return;
+        }
+        
+        if (!backendAuth.success) {
+            console.log('⚠️ Backend falló, intentando autenticación local...');
+            const localAuth = authenticateLocally(username, password);
+            if (!localAuth.success) {
                 showAlert('Usuario o contraseña incorrectos', 'error');
                 shakeLoginCard();
+                setLoadingState(false);
+                return;
             }
+            backendAuth.user = localAuth.user;
+            backendAuth.success = true;
         }
+        
+        // PASO 3: Login exitoso sin MFA
+        console.log('✅ Autenticación exitosa sin MFA');
+        await handleSuccessfulLogin(backendAuth.user, rememberMe);
         
     } catch (error) {
         console.error('❌ Error en login:', error);
         showAlert('Error de conexión. Usando autenticación local.', 'error');
         
-        // Fallback a autenticación local
-        const localAuth = authenticateLocally(username, password);
+        const localAuth = authenticateLocally(usernameInput.value.trim(), passwordInput.value);
         if (localAuth.success) {
             await handleSuccessfulLogin(localAuth.user, rememberMe);
         } else {
@@ -180,6 +241,8 @@ async function handleLogin(e) {
 async function authenticateWithBackend(username, password) {
     try {
         console.log('🌐 Conectando con backend...');
+        console.log('URL:', 'http://localhost:3000/api/auth/login');
+        console.log('Datos:', { username, password });
         
         const response = await fetch('http://localhost:3000/api/auth/login', {
             method: 'POST',
@@ -190,11 +253,28 @@ async function authenticateWithBackend(username, password) {
             timeout: 5000
         });
         
+        console.log('Status HTTP:', response.status);
+        console.log('Response.ok:', response.ok);
+        
         if (response.ok) {
             const result = await response.json();
-            console.log('📡 Respuesta del backend:', result);
+            console.log('📡 Respuesta COMPLETA del backend:', result);
+            console.log('¿mfaRequired?:', result.mfaRequired);
+            console.log('¿success?:', result.success);
+            console.log('¿email?:', result.email);
+            
+            if (result.mfaRequired) {
+                console.log('✅ DETECTADO: MFA requerido');
+                return {
+                    success: false,
+                    mfaRequired: true,
+                    email: result.email,
+                    username: username
+                };
+            }
             
             if (result.success) {
+                console.log('✅ DETECTADO: Login exitoso sin MFA');
                 return {
                     success: true,
                     user: {
@@ -206,16 +286,16 @@ async function authenticateWithBackend(username, password) {
             }
         }
         
-        console.log('❌ Backend retornó error');
+        console.log('❌ Backend retornó algo que no es 2xx o no tiene flags esperados');
         return { success: false };
-        
     } catch (error) {
         console.log('❌ Error conectando con backend:', error.message);
+        console.log('Stack:', error.stack);
         return { success: false };
     }
 }
 
-// Autenticación local (fallback)
+// Autenticación local
 function authenticateLocally(username, password) {
     console.log('🔍 Buscando en usuarios locales...');
     
@@ -239,7 +319,6 @@ function authenticateLocally(username, password) {
 async function handleSuccessfulLogin(user, rememberMe) {
     console.log('🎉 Login exitoso:', user);
     
-    // Guardar información de la sesión
     const sessionData = {
         username: user.username,
         role: user.role,
@@ -250,33 +329,98 @@ async function handleSuccessfulLogin(user, rememberMe) {
     localStorage.setItem('iot_user', JSON.stringify(sessionData));
     localStorage.setItem('iot_login_time', sessionData.loginTime.toString());
     
-    // Guardar credenciales si se solicitó
     if (rememberMe) {
         localStorage.setItem('iot_remember_user', user.username);
     } else {
         localStorage.removeItem('iot_remember_user');
     }
     
-    // Mostrar mensaje de éxito
     showAlert(`¡Bienvenido, ${user.username}!`, 'success');
     
-    // Cambiar color del botón
+    const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
-    if (loginBtn) {
-        loginBtn.style.background = 'var(--success-color)';
+    
+    if (loginForm) {
+        loginForm.onsubmit = handleLogin;
     }
     
-    // Redirigir después de un breve delay
+    if (loginBtn) {
+        loginBtn.type = 'submit';
+        loginBtn.textContent = 'Iniciar Sesión';
+        loginBtn.style.background = 'var(--success-color)';
+        loginBtn.onclick = null;
+    }
+    
+    const mfaGroup = document.getElementById('mfaGroup');
+    if (mfaGroup) {
+        mfaGroup.style.display = 'none';
+    }
+    
     setTimeout(() => {
         redirectToDashboard();
     }, 1500);
+}
+
+async function handleMfaLogin(username, rememberMe) {
+    const mfaCodeInput = document.getElementById('mfaCode');
+    const mfaCode = mfaCodeInput ? mfaCodeInput.value.trim() : '';
+    const email = window.mfaEmail;
+    
+    if (!mfaCode) {
+        showAlert('Por favor ingresa el código de autenticación', 'error');
+        return;
+    }
+    
+    if (!email) {
+        showAlert('Error: email no disponible', 'error');
+        return;
+    }
+    
+    setLoadingState(true);
+    
+    try {
+        console.log('🔐 Validando código MFA...');
+        const response = await fetch('http://localhost:3000/api/auth/verify-mfa', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, code: mfaCode })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            showAlert(error.message || 'Código incorrecto', 'error');
+            mfaCodeInput.value = '';
+            mfaCodeInput.focus();
+            setLoadingState(false);
+            return;
+        }
+        
+        const result = await response.json();
+        if (result.success) {
+            console.log('✅ Código MFA válido, login completado');
+            const user = {
+                username: result.user.username,
+                role: result.user.role,
+                loginMethod: 'backend'
+            };
+            await handleSuccessfulLogin(user, rememberMe);
+        } else {
+            showAlert(result.message || 'Error validando código', 'error');
+            setLoadingState(false);
+        }
+    } catch (error) {
+        console.error('❌ Error validando MFA:', error);
+        showAlert('Error validando código', 'error');
+        setLoadingState(false);
+    }
 }
 
 // Redirigir al dashboard
 function redirectToDashboard() {
     console.log('🚀 Redirigiendo al dashboard...');
     
-    // Efecto de transición
     document.body.style.transition = 'opacity 0.3s ease-out';
     document.body.style.opacity = '0';
     
@@ -285,7 +429,6 @@ function redirectToDashboard() {
     }, 300);
 }
 
-// Toggle de visibilidad de contraseña
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('password');
     const toggleIcon = document.querySelector('#togglePassword i');
@@ -302,7 +445,6 @@ function togglePasswordVisibility() {
         toggleIcon.classList.add('fa-eye');
     }
     
-    // Mantener el foco
     passwordInput.focus();
 }
 
@@ -333,7 +475,7 @@ function setLoadingState(loading) {
     }
 }
 
-// Mostrar alerta
+
 function showAlert(message, type = 'error') {
     const alert = document.getElementById('alert');
     const alertMessage = document.querySelector('.alert-message');
@@ -344,11 +486,9 @@ function showAlert(message, type = 'error') {
     alert.className = `alert ${type}`;
     alert.style.display = 'flex';
     
-    // Auto-ocultar después de 5 segundos
     setTimeout(clearAlert, 5000);
 }
 
-// Limpiar alerta
 function clearAlert() {
     const alert = document.getElementById('alert');
     if (alert) {
@@ -356,7 +496,6 @@ function clearAlert() {
     }
 }
 
-// Animación de error en la tarjeta
 function shakeLoginCard() {
     const card = document.querySelector('.login-card');
     if (card) {
@@ -367,7 +506,6 @@ function shakeLoginCard() {
     }
 }
 
-// Cargar credenciales guardadas
 function loadSavedCredentials() {
     const savedUser = localStorage.getItem('iot_remember_user');
     const usernameInput = document.getElementById('username');
@@ -381,23 +519,19 @@ function loadSavedCredentials() {
     }
 }
 
-// Limpiar sesión
 function clearSession() {
     localStorage.removeItem('iot_user');
     localStorage.removeItem('iot_login_time');
 }
 
-// Función de logout (para uso global)
 function logout() {
     clearSession();
     localStorage.removeItem('iot_remember_user');
     window.location.href = 'login.html';
 }
 
-// Exportar función logout para uso global
 window.logout = logout;
 
-// Agregar estilos dinámicos para animaciones
 const style = document.createElement('style');
 style.textContent = `
     @keyframes shake {

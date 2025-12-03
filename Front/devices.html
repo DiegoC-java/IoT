@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Sensores IoT</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="iot-bg-bubble b1"></div>
+    <div class="iot-bg-bubble b2"></div>
+    <div class="iot-bg-bubble b3"></div>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-chart-line"></i>
+                <h1>Dashboard IoT</h1>
+            </div>
+            <div class="header-controls">
+                <button id="pageLogoutBtn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Salir
+                </button>
+                <button id="pageRefreshBtn" class="btn-refresh">
+                    <i class="fas fa-sync-alt"></i>
+                    Actualizar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <aside class="sidebar">
+        <nav class="nav-menu">
+            <ul>
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Resumen</span>
+                    </a>
+                </li>
+                <li class="nav-item active">
+                    <a href="devices.html" class="nav-link">
+                        <i class="fas fa-bell"></i>
+                        <span>Historial de alertas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="benchmarks.html" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Benchmarks</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content alerts-page">
+        <section class="alerts-hero">
+            <div>
+                <p class="eyebrow">Panel de monitoreo</p>
+                <h2>Historial de alertas</h2>
+                <p class="subtitle">Consulta las últimas activaciones registradas por los sensores y detecta patrones en cuestión de segundos.</p>
+            </div>
+            <div class="alerts-controls">
+                <label for="alertsLimit">Mostrar</label>
+                <select id="alertsLimit" class="select-control">
+                    <option value="10">Últimas 10</option>
+                    <option value="20">Últimas 20</option>
+                    <option value="30">Últimas 30</option>
+                </select>
+                <button id="exportCsvBtn" class="btn-refresh">
+                    <i class="fas fa-file-csv"></i>
+                    Exportar CSV
+                </button>
+                <button id="refreshAlertsBtn" class="btn-refresh">
+                    <i class="fas fa-sync-alt"></i>
+                    Actualizar
+                </button>
+            </div>
+        </section>
+
+        <section class="alerts-history-section">
+            <div class="alerts-table-card">
+                <div class="section-header">
+                    <div>
+                        <h3>Alertas recientes</h3>
+                        <p class="section-subtitle">Registros provenientes del backend en tiempo real.</p>
+                    </div>
+                    <span id="alertsLastUpdate" class="muted-text">—</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="alertsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Evento</th>
+                                <th>Dispositivo</th>
+                                <th>Sensor</th>
+                                <th>Valor</th>
+                                <th>Fecha</th>
+                                <th>Hace</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsTableBody">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                    <div class="empty-state" id="alertsEmptyState">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>Sin alertas registradas en este rango.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script src="devices.js"></script>
+</body>
+</html>
