@@ -18,10 +18,7 @@
             padding: 30px;
             color: #fff;
         }
-
-        /* ============================================
-           SECCIÓN 1: DIAGRAMA DE FLUJO (PARA SCREENSHOT)
-           ============================================ */
+ 
         .diagram-section {
             background: rgba(255, 255, 255, 0.95);
             padding: 40px;
@@ -276,9 +273,7 @@
             background: #3533cd;
         }
 
-        /* ============================================
-           SECCIÓN 2: TECNOLOGÍAS (SEPARADA)
-           ============================================ */
+ 
         .separator {
             border: none;
             border-top: 3px dashed rgba(255,255,255,0.3);
@@ -341,19 +336,14 @@
     </style>
 </head>
 <body>
-
-    <!-- ========================================
-         DIAGRAMA DE FLUJO (SCREENSHOT AQUÍ)
-         ======================================== -->
+ 
     <section class="diagram-section">
         <h1 class="diagram-title">Diagrama de Flujo - Sistema de Alarma IoT</h1>
 
         <div class="flowchart">
-            <!-- Fila principal del flujo -->
-            <div class="flow-row">
+             <div class="flow-row">
                 
-                <!-- Sensores -->
-                <div class="sensors-branch">
+                 <div class="sensors-branch">
                     <div class="sensor-pair">
                         <div class="box box-rect box-sensor box-small">
                             <h3>PIR</h3>
@@ -366,61 +356,50 @@
                     </div>
                 </div>
 
-                <!-- Flecha -->
-                <div class="arrow-h" style="width: 40px;"></div>
+                 <div class="arrow-h" style="width: 40px;"></div>
 
-                <!-- ESP32 -->
-                <div class="box box-rect box-process">
+                 <div class="box box-rect box-process">
                     <h3>ESP32</h3>
                     <p>Procesa datos</p>
                 </div>
 
-                <!-- Flecha con etiqueta HTTP -->
-                <div class="arrow-h" style="position: relative;">
+                 <div class="arrow-h" style="position: relative;">
                     <span class="protocol-label">HTTP</span>
                 </div>
 
-                <!-- Backend -->
-                <div class="box box-rect box-server">
+                 <div class="box box-rect box-server">
                     <h3>Backend</h3>
                     <p>Node.js</p>
                 </div>
 
-                <!-- Flecha con etiqueta SQL -->
-                <div class="arrow-h" style="position: relative;">
+                 <div class="arrow-h" style="position: relative;">
                     <span class="protocol-label">SQL</span>
                 </div>
 
-                <!-- Base de datos -->
-                <div class="box box-rect box-database" style="padding-top: 20px;">
+                 <div class="box box-rect box-database" style="padding-top: 20px;">
                     <h3>PostgreSQL</h3>
                     <p>Almacena eventos</p>
                 </div>
 
-                <!-- Flecha con etiqueta API -->
-                <div class="arrow-h" style="position: relative;">
+                 <div class="arrow-h" style="position: relative;">
                     <span class="protocol-label">API REST</span>
                 </div>
 
-                <!-- Dashboard -->
-                <div class="box box-rounded box-output">
+                 <div class="box box-rounded box-output">
                     <h3>Dashboard</h3>
                     <p>Monitoreo web</p>
                 </div>
 
             </div>
 
-            <!-- Línea de retorno MQTT (Backend -> ESP32) -->
-            <div style="position: relative; width: 100%; height: 80px; margin-top: 20px;">
+             <div style="position: relative; width: 100%; height: 80px; margin-top: 20px;">
                 <svg width="100%" height="80" style="position: absolute; left: 0; top: 0;">
-                    <!-- Línea curva de retorno -->
-                    <defs>
+                     <defs>
                         <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
                             <polygon points="0 0, 10 3.5, 0 7" fill="#9c27b0" />
                         </marker>
                     </defs>
-                    <!-- Línea desde Backend hacia abajo, luego hacia ESP32 -->
-                    <path d="M 520 0 L 520 40 L 280 40 L 280 0" 
+                     <path d="M 520 0 L 520 40 L 280 40 L 280 0" 
                           stroke="#9c27b0" 
                           stroke-width="2" 
                           fill="none"
@@ -432,15 +411,10 @@
 
         </div>
     </section>
-
-    <!-- ========================================
-         SEPARADOR
-         ======================================== -->
+ 
     <hr class="separator">
 
-    <!-- ========================================
-         TECNOLOGÍAS UTILIZADAS (APARTE)
-         ======================================== -->
+ 
     <section class="tech-section">
         <h2 class="tech-title">Tecnologías Utilizadas</h2>
 

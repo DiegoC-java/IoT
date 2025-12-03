@@ -1,4 +1,4 @@
-/* Fondo especial para benchmarks */
+
 body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
     background-size: 400% 400%;
@@ -200,7 +200,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ========== SECCIÓN DE GESTIÓN DE DATOS ========== */
+
 .data-management-section {
     margin-top: 4rem;
     padding: 3.5rem;
@@ -268,7 +268,6 @@ body {
     letter-spacing: 0.4px;
 }
 
-/* ========== CONTENEDOR DE BOTONES ========== */
 .buttons-container {
     display: flex;
     gap: 1.5rem;
@@ -279,7 +278,6 @@ body {
     z-index: 1;
 }
 
-/* ========== BOTONES DE LIMPIEZA DE DATOS - DISEÑO MEJORADO ========== */
 .btn-clear-data {
     position: relative;
     display: flex;
@@ -358,7 +356,6 @@ body {
     100% { transform: rotate(360deg); }
 }
 
-/* ========== BOTÓN DANGER (LIMPIAR TODO) ========== */
 .btn-danger {
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
     color: white;
@@ -403,7 +400,6 @@ body {
     opacity: 0.7;
 }
 
-/* ========== ANIMACIONES ========== */
 @keyframes successPulse {
     0%, 100% {
         box-shadow: 
@@ -423,7 +419,6 @@ body {
     75% { transform: translateY(-6px) translateX(10px); }
 }
 
-/* ========== BANNER DE ADVERTENCIA ========== */
 .warning-banner {
     display: flex;
     gap: 1.5rem;
@@ -472,7 +467,6 @@ body {
     font-weight: 500;
 }
 
-/* ========== MODAL DE CONFIRMACIÓN ========== */
 .confirm-modal-overlay {
     position: fixed;
     top: 0;
@@ -722,7 +716,6 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ========== SECCIÓN DE GESTIÓN DE DATOS ========== */
 .data-management-section {
     margin-top: 3.5rem;
     padding: 2.5rem;
@@ -764,7 +757,7 @@ body {
     font-weight: 400;
 }
 
-/* ========== CONTENEDOR DE BOTONES ========== */
+
 .buttons-container {
     display: flex;
     gap: 1.2rem;
@@ -773,7 +766,6 @@ body {
     margin-bottom: 2rem;
 }
 
-/* ========== BOTONES DE LIMPIEZA DE DATOS ========== */
 .btn-clear-data {
     display: flex;
     align-items: center;
@@ -820,7 +812,7 @@ body {
     opacity: 1;
 }
 
-/* ========== BOTÓN DANGER (LIMPIAR TODO) ========== */
+
 .btn-danger {
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
     color: white;
@@ -869,7 +861,6 @@ body {
     opacity: 0.7;
 }
 
-/* ========== BOTÓN WARNING (LIMPIAR BENCHMARKS) ========== */
 .btn-warning {
     background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     color: white;
@@ -918,7 +909,7 @@ body {
     opacity: 0.7;
 }
 
-/* ========== ANIMACIONES ========== */
+
 @keyframes successPulse {
     0% {
         box-shadow: 0 8px 24px rgba(39, 174, 96, 0.4);
@@ -937,7 +928,7 @@ body {
     75% { transform: translateX(6px); }
 }
 
-/* ========== BANNER DE ADVERTENCIA ========== */
+
 .warning-banner {
     display: flex;
     gap: 1.2rem;
@@ -974,7 +965,7 @@ body {
     line-height: 1.5;
 }
 
-/* ========== MODAL DE CONFIRMACIÓN ========== */
+
 .confirm-modal-overlay {
     position: fixed;
     top: 0;
@@ -1102,7 +1093,7 @@ body {
     transform: translateY(-2px);
 }
 
-/* ========== RESPONSIVE ========== */
+
 @media (max-width: 800px) {
     body {
         background-size: 600% 600%;

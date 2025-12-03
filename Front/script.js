@@ -1,34 +1,28 @@
-// Variables globales
-// ...existing code...
 
 let devicesChart;
 let currentData = {};
-let isAlarmSystemArmed = true; // El sistema empieza armado por defecto
-// Configuración de gráficos
+let isAlarmSystemArmed = true; 
+
 Chart.defaults.font.family = 'Inter, sans-serif';
 Chart.defaults.color = '#64748b';
 
-// --- NUEVO: Función para buscar y actualizar el evento más reciente ---
 async function fetchLatestEvent() {
     try {
         const response = await fetch('http://localhost:3001/api/events/latest');
         if (!response.ok) {
-            // No mostrar error en consola para no saturar, ya que se llama constantemente
             return;
         }
         const result = await response.json();
         if (result.success && result.data) {
             updateRecentEventCard(result.data);
         } else {
-            updateRecentEventCard(null); // No hay eventos
+            updateRecentEventCard(null); 
         }
     } catch (error) {
-        // Ignorar errores de fetch para que el polling no se detenga
         console.error('Error en fetchLatestEvent:', error.message);
     }
 }
 
-// --- NUEVO: Función para actualizar la tarjeta de "Eventos Recientes" en el HTML ---
 function updateRecentEventCard(event) {
     const eventContainer = document.getElementById('recent-event-display');
     if (!eventContainer) return;
@@ -46,19 +40,18 @@ function updateRecentEventCard(event) {
 
     let description = 'Evento desconocido';
     let icon = 'fas fa-question-circle';
-    let eventClass = ''; // <-- Variable para la clase de color
+    let eventClass = ''; 
 
     if (event.event_type === 'motion_detected') {
         description = 'Movimiento detectado';
         icon = 'fas fa-walking';
-        eventClass = 'motion'; // <-- Asigna la clase 'motion'
+        eventClass = 'motion'; 
     } else if (event.event_type === 'vibration_detected') {
         description = 'Vibración detectada';
-        icon = 'fas fa-broadcast-tower'; // Un icono más representativo de vibración
-        eventClass = 'vibration'; // <-- Asigna la clase 'vibration'
+        icon = 'fas fa-broadcast-tower'; 
+        eventClass = 'vibration'; 
     }
 
-    // Usamos la nueva clase en el div principal para aplicar los colores
     eventContainer.innerHTML = `
         <div class="event-details ${eventClass}">
             <i class="${icon}"></i>
@@ -74,7 +67,6 @@ function checkAuthentication() {
     const loginTime = localStorage.getItem('iot_login_time');
     
     if (!currentUser || !loginTime) {
-        // No hay sesión, redirigir a login
         console.log('❌ No hay sesión activa, redirigiendo a login');
         window.location.href = 'login.html';
         return false;
@@ -84,10 +76,9 @@ function checkAuthentication() {
         const userData = JSON.parse(currentUser);
         const now = new Date().getTime();
         const sessionTime = parseInt(loginTime);
-        const sessionDuration = 24 * 60 * 60 * 1000; // 24 horas
+        const sessionDuration = 24 * 60 * 60 * 1000; 
         
         if (now - sessionTime >= sessionDuration) {
-            // Sesión expirada
             console.log('⏰ Sesión expirada, redirigiendo a login');
             localStorage.removeItem('iot_user');
             localStorage.removeItem('iot_login_time');
@@ -96,7 +87,6 @@ function checkAuthentication() {
             return false;
         }
         
-        // Mostrar información del usuario en el header
         showUserInfo(userData);
         console.log('✅ Sesión válida para:', userData.username);
         
@@ -117,7 +107,7 @@ function showUserInfo(userData) {
     if (headerControls) {
         headerControls.innerHTML = '';
 
-        // Botón Salir
+ 
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'btn-logout';
         logoutBtn.style.cssText = `
@@ -136,7 +126,7 @@ function showUserInfo(userData) {
         logoutBtn.innerHTML = `<i class="fas fa-sign-out-alt"></i> Salir`;
         logoutBtn.onclick = logout;
 
-        // Fecha y hora actual
+ 
         let datetimeElement = document.getElementById('datetime');
         if (!datetimeElement) {
             datetimeElement = document.createElement('small');
@@ -153,7 +143,7 @@ function showUserInfo(userData) {
             `;
         }
 
-        // Botón Actualizar
+
         const refreshBtn = document.createElement('button');
         refreshBtn.id = 'refreshBtn';
         refreshBtn.className = 'btn-refresh';
@@ -173,7 +163,6 @@ function showUserInfo(userData) {
         refreshBtn.innerHTML = `<i class="fas fa-sync-alt"></i> Actualizar`;
         refreshBtn.addEventListener('click', refreshData);
 
-        // Indicador de última actualización
         let updateIndicator = document.getElementById('lastUpdate');
         if (!updateIndicator) {
             updateIndicator = document.createElement('small');
@@ -190,7 +179,6 @@ function showUserInfo(userData) {
             `;
         }
 
-        // Estructura: [SALIR] [fecha/hora actual] [ACTUALIZAR] [última actualización]
         const headerRow = document.createElement('div');
         headerRow.style.display = 'flex';
         headerRow.style.alignItems = 'center';
@@ -207,68 +195,62 @@ function showUserInfo(userData) {
 function logout() {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
         console.log('👋 Cerrando sesión...');
-        
-        // Llamar al endpoint de logout si está disponible
+    
         try {
             fetch('http://localhost:3001/api/auth/logout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
-            }).catch(() => {}); // Ignorar errores del backend
+            }).catch(() => {}); 
         } catch (error) {
             console.log('Backend no disponible para logout');
         }
         
-        // Limpiar sesión local
+     
         localStorage.removeItem('iot_user');
         localStorage.removeItem('iot_login_time');
         window.location.href = 'login.html';
     }
 }
 
-// Inicialización cuando se carga el DOM
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Verificar autenticación antes de inicializar
+    
     if (!checkAuthentication()) {
-        return; // No continuar si no está autenticado
+        return; 
     }
 
-    // Mostrar fecha y hora actuales en el header
     updateDateTime();
 
-    // Continuar con la inicialización normal del dashboard
     console.log('🚀 Inicializando dashboard...');
     initializeDashboard();
 });
 
 // Función principal de inicialización
 async function initializeDashboard() {
-    //showLoading(true);
-    
+  
     try {
-        // Cargar datos
+        
         await loadData();
         
-        // Inicializar componentes
         await fetchLatestEvent();
         updateDateTime();
         initializeCharts();
         populateDevicesTable();
         setupEventListeners();
-        //logica del armado y desarmado
-        setupAlarmControls(); // Asigna el evento 'click' a la tarjeta
+        
+        setupAlarmControls(); 
         updateAlarmUI();
-        // Actualizar datos cada 30 segundos
         setInterval(refreshData, 30000);
-        setInterval(fetchLatestEvent, 5000); // <-- ¡ESTA ES LA LÍNEA QUE FALTABA!
+        setInterval(fetchLatestEvent, 5000); 
 
-        //showLoading(false);
+   
         console.log('✅ Dashboard inicializado correctamente');
     } catch (error) {
         console.error('❌ Error inicializando dashboard:', error);
-        //showLoading(false);
+      
     }
     setupAlarmControls();
-    updateAlarmUI(); // Llama para establecer el estado visual inicial
+    updateAlarmUI(); 
 }
 
 function updateAlarmUI() {
@@ -286,7 +268,7 @@ function updateAlarmUI() {
     }
 }
 
-// Función que se ejecuta al hacer clic en la tarjeta de control
+
 async function handleToggleAlarm() {
     const newState = isAlarmSystemArmed ? 'inactive' : 'active';
     console.log(`Enviando comando para poner la alarma en estado: ${newState}`);
@@ -315,18 +297,17 @@ async function handleToggleAlarm() {
     }
 }
 
-// Asigna el evento 'click' a la tarjeta de control
+
 function setupAlarmControls() {
     const controlCard = document.getElementById('alarm-control-card');
     if (controlCard) {
         controlCard.addEventListener('click', handleToggleAlarm);
     }
 }
-// Cargar datos desde el backend
+
 async function loadData() {
     try {
         console.log('🔄 Cargando datos desde el backend...');
-        //showLoading(true);
         
         const response = await fetch('http://localhost:3001/api/devices');
         console.log('📡 Estado de la respuesta:', response.status);
@@ -342,7 +323,6 @@ async function loadData() {
             throw new Error(result.message || 'Error en la respuesta del servidor');
         }
 
-        // Actualizar datos globales
         currentData = {
             devices: result.data || [],
             kpis: {
@@ -356,26 +336,22 @@ async function loadData() {
                     current: result.data.filter(d => d.status === 'warning').length 
                 },
                 recentEvents: { 
-                    current: 0  // Update this based on your events logic
+                    current: 0  
                 }
             }
         };
 
-        // Actualizar UI
         updateKPIs();
         updateDevicesChart();
         populateDevicesTable();
         updateLastUpdate();
-        //showLoading(false);
 
     } catch (error) {
         console.error('❌ Error:', error);
-        //showLoading(false);
         await loadDataFallback();
     }
 }
 
-// Función para cargar datos de respaldo
 async function loadDataFallback() {
     console.log('📊 Cargando datos de respaldo...');
     currentData = {
@@ -422,7 +398,6 @@ async function loadDataFallback() {
         }
     };
 
-    // Actualizar UI con datos de respaldo
     updateKPIs();
     updateDevicesChart();
     populateDevicesTable();
@@ -432,7 +407,6 @@ async function loadDataFallback() {
 function updateKPIs() {
     const kpis = currentData.kpis;
     
-    // Helper function to safely update element
     const updateElement = (id, value) => {
         const element = document.getElementById(id);
         if (element) {
@@ -442,14 +416,12 @@ function updateKPIs() {
         }
     };
 
-    // Update each KPI safely
     updateElement('systemStatus', kpis.systemStatus?.current || 'N/A');
     updateElement('activeDevices', kpis.activeDevices?.current || '0');
     updateElement('alerts', kpis.alerts?.current || '0');
     updateElement('recentEvents', kpis.recentEvents?.current || '0');
 }
 
-// Actualizar información de última actualización
 function updateLastUpdate() {
     const now = new Date();
     const timeString = now.toLocaleTimeString('es-ES', { 
@@ -458,10 +430,8 @@ function updateLastUpdate() {
         second: '2-digit'
     });
     
-    // Buscar y actualizar el indicador de última actualización si existe
     let updateIndicator = document.getElementById('lastUpdate');
     if (!updateIndicator) {
-        // Crear indicador si no existe
         updateIndicator = document.createElement('small');
         updateIndicator.id = 'lastUpdate';
         updateIndicator.style.cssText = `
@@ -482,11 +452,7 @@ function updateLastUpdate() {
     updateIndicator.innerHTML = `<i class="fas fa-clock"></i> Última actualización: ${timeString}`;
 }
 
-// Generar datos históricos de temperatura
 
-// Generar datos de dispositivos
-
-// Inicializar gráficos
 function initializeCharts() {
     try {
         initializeDevicesChart();
@@ -497,7 +463,6 @@ function initializeCharts() {
 }
 
 
-// Gráfico de estado de dispositivos
 function initializeDevicesChart() {
     const ctx = document.getElementById('devicesChart');
     if (!ctx) {
@@ -514,7 +479,6 @@ function initializeDevicesChart() {
         });
     }
     
-    // Si ya existe un gráfico, destrúyelo antes de crear uno nuevo
     if (devicesChart) {
         devicesChart.destroy();
     }
@@ -530,31 +494,31 @@ function initializeDevicesChart() {
                     statusCount.warning
                 ],
                 backgroundColor: [
-                    '#22c55e', // Verde para 'En línea'
-                    '#ef4444', // Rojo para 'Fuera de línea'
-                    '#f59e0b'  // Naranja para 'Advertencia'
+                    '#22c55e',
+                    '#ef4444', 
+                    '#f59e0b'  
                 ],
-                borderWidth: 4, // Borde más grueso para mejor separación
-                borderColor: '#1e293b' // Color de fondo del contenedor
+                borderWidth: 4, 
+                borderColor: '#1e293b' 
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '70%', // Hacer el donut un poco más delgado
+            cutout: '70%', 
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
                         padding: 20,
                         usePointStyle: true,
-                        color: '#cbd5e1' // <-- CAMBIO CLAVE: Color de la leyenda
+                        color: '#cbd5e1' 
                     }
                 },
-                title: { // <-- NUEVO: Para controlar el título
+                title: { 
                     display: true,
                     text: 'Estado de Dispositivos',
-                    color: '#e2e8f0', // <-- CAMBIO CLAVE: Color del título
+                    color: '#e2e8f0', 
                     font: {
                         size: 18,
                         weight: '600'
@@ -564,7 +528,7 @@ function initializeDevicesChart() {
                     }
                 },
                 tooltip: {
-                    // (Tu configuración de tooltip es correcta, no necesita cambios)
+                    
                 }
             }
         }
@@ -615,7 +579,6 @@ function getStatusText(status) {
     return statusTexts[status] || status;
 }
 
-// Obtener unidad para tipo de dispositivo
 function getUnitForDevice(type) {
     if (type.includes('Temperatura')) return '°C';
     if (type.includes('Humedad')) return '%';
@@ -624,27 +587,22 @@ function getUnitForDevice(type) {
     return '';
 }
 
-// Configurar event listeners
 function setupEventListeners() {
     try {
-        // Botón de actualizar
         const refreshBtn = document.getElementById('refreshBtn');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', refreshData);
         }
         
         
-        // Botón de exportar
         const exportBtn = document.querySelector('.btn-export');
         if (exportBtn) {
             exportBtn.addEventListener('click', exportData);
         }
         
-        // Navegación del sidebar
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
                 const href = this.getAttribute('href');
-                // Solo prevenir el comportamiento por defecto si es un anchor interno (hash)
                 if (href && href.startsWith('#')) {
                     e.preventDefault();
                     document.querySelectorAll('.nav-item').forEach(item => {
@@ -654,7 +612,6 @@ function setupEventListeners() {
                     const section = href.substring(1);
                     console.log(`📍 Navegando a: ${section}`);
                 }
-                // Si es un archivo .html, dejar que el navegador navegue normalmente
             });
         });
         
@@ -664,7 +621,6 @@ function setupEventListeners() {
     }
 }
 
-// Actualizar fecha y hora
 function updateDateTime() {
     try {
         const now = new Date();
@@ -698,14 +654,12 @@ function updateDateTime() {
         }
         datetimeElement.textContent = `${now.toLocaleDateString('es-ES', options)}`;
 
-        // Actualizar cada minuto
         setTimeout(updateDateTime, 60000);
     } catch (error) {
         console.error('❌ Error actualizando fecha y hora:', error);
     }
 }
 
-// Mostrar/ocultar loading
 function showLoading(show) {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
@@ -717,12 +671,10 @@ function showLoading(show) {
     }
 }
 
-// Refrescar datos
 async function refreshData() {
     const refreshBtn = document.getElementById('refreshBtn');
     const icon = refreshBtn ? refreshBtn.querySelector('i') : null;
     
-    // Animar icono de refresh
     if (icon) {
         icon.style.animation = 'spin 1s linear infinite';
     }
@@ -730,17 +682,14 @@ async function refreshData() {
     try {
         console.log('🔄 Refrescando datos...');
         await loadData();
-        await fetchLatestEvent(); // --- NUEVO: Refresca también el último evento ---
+        await fetchLatestEvent(); 
         
-    // Actualizar gráfico de dispositivos
     updateDevicesChart();
-    // Actualizar tabla
     populateDevicesTable();
     console.log('✅ Datos refrescados exitosamente');
     } catch (error) {
         console.error('❌ Error refrescando datos:', error);
     } finally {
-        // Detener animación
         if (icon) {
             setTimeout(() => {
                 icon.style.animation = '';
@@ -751,12 +700,10 @@ async function refreshData() {
 
 
 
-// Actualizar gráfico de dispositivos
 function updateDevicesChart() {
     if (!devicesChart) return;
     
     try {
-        // Contar estados de dispositivos
         const statusCount = { online: 0, offline: 0, warning: 0 };
         currentData.devices.forEach(device => {
             statusCount[device.status] = (statusCount[device.status] || 0) + 1;
@@ -775,12 +722,10 @@ function updateDevicesChart() {
     }
 }
 
-// Funciones para acciones de dispositivos
 async function viewDevice(deviceId) {
     try {
         console.log(`👁️ Viendo dispositivo: ${deviceId}`);
         
-        // Intentar obtener datos del backend
         const response = await fetch(`http://localhost:3001/api/devices/${deviceId}`);
         
         if (response.ok) {
@@ -797,7 +742,6 @@ async function viewDevice(deviceId) {
         console.error('❌ Error obteniendo detalles del dispositivo:', error);
     }
     
-    // Fallback a datos locales
     const device = currentData.devices.find(d => d.id === deviceId);
     if (device) {
         alert(`📱 Dispositivo: ${device.name}\n🏷️ ID: ${device.id}\n📍 Ubicación: ${device.location || 'No especificada'}\n🔄 Estado: ${getStatusText(device.status)}\n📊 Valor: ${device.value} ${device.unit || ''}\n🔋 Batería: ${device.battery || 'N/A'}%\n📡 Señal: ${device.signal || 'N/A'}\n⏰ Última lectura: ${device.lastReading}`);
@@ -819,7 +763,6 @@ async function editDevice(deviceId) {
         const newName = prompt(`Editar nombre del dispositivo (${device.id}):`, device.name);
         if (newName && newName.trim() && newName.trim() !== device.name) {
             try {
-                // Intentar actualizar en el backend
                 const response = await fetch(`http://localhost:3001/api/devices/${deviceId}`, {
                     method: 'PUT',
                     headers: {
@@ -851,7 +794,6 @@ async function editDevice(deviceId) {
                 console.error('❌ Error actualizando dispositivo:', error);
                 alert('⚠️ Error al actualizar en el servidor. Actualizando localmente...');
                 
-                // Fallback a actualización local
                 device.name = newName.trim();
                 populateDevicesTable();
                 console.log(`✅ Dispositivo ${deviceId} actualizado localmente`);
@@ -863,7 +805,6 @@ async function editDevice(deviceId) {
     }
 }
 
-// Exportar datos
 function exportData() {
     try {
         console.log('📤 Exportando datos...');
@@ -876,7 +817,6 @@ function exportData() {
     }
 }
 
-// Generar contenido CSV
 function generateCSV() {
     const headers = ['ID', 'Nombre', 'Tipo', 'Ubicación', 'Estado', 'Última Lectura', 'Valor', 'Batería', 'Señal'];
     const rows = currentData.devices.map(device => [
@@ -895,7 +835,6 @@ function generateCSV() {
     return csvArray.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
 }
 
-// Descargar archivo CSV
 function downloadCSV(content, filename) {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -912,7 +851,6 @@ function downloadCSV(content, filename) {
     }
 }
 
-// Animación CSS para el icono de refresh
 const style = document.createElement('style');
 style.textContent = `
     @keyframes spin {
@@ -970,12 +908,10 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Manejar errores globales
 window.addEventListener('error', function(e) {
     console.error('❌ Error global:', e.error);
 });
 
-// Manejar visibilidad de la página para pausar/reanudar actualizaciones
 document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
         console.log('🔇 Página oculta, pausando actualizaciones');
@@ -985,10 +921,6 @@ document.addEventListener('visibilitychange', function() {
     }
 });
 
-// Función para simular datos en tiempo real (opcional)
-// ...eliminada simulación de temperatura y humedad...
 
-// Iniciar simulación en tiempo real (descomenta si quieres datos que cambien automáticamente)
-//startRealTimeSimulation();
 
 console.log('🎉 Dashboard IoT cargado correctamente');

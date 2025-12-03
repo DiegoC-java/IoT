@@ -1,11 +1,9 @@
-/* Fondo visual atractivo para la página de sensores */
 body {
     background: linear-gradient(120deg, #1e293b 0%, #334155 50%, #64748b 100%);
     min-height: 100vh;
     position: relative;
 }
 
-/* Detalles decorativos suaves (burbujas) */
 .iot-bg-bubble {
     position: absolute;
     border-radius: 50%;
@@ -27,7 +25,6 @@ body {
     left: 40vw; bottom: -90px;
     background: radial-gradient(circle, #f59e0bbb 0%, #64748b 100%);
 }
-/* Iconos y estilos extra para la página de sensores */
 .sensor-icon {
     width: 60px;
     height: 60px;
@@ -40,7 +37,6 @@ body {
     box-shadow: 0 2px 8px rgba(37,99,235,0.08);
 }
 
-/* Estilos para la página de benchmarks */
 .main-content h2 {
     color: #1e293b;
     font-size: 2rem;
@@ -91,7 +87,7 @@ td {
     font-size: 0.98rem;
 }
 
-/* Responsive para tablas */
+
 @media (max-width: 700px) {
     table {
         width: 98% !important;
@@ -138,7 +134,6 @@ td {
 .sensor-card .btn-action:active {
     transform: scale(0.97);
 }
-/* Estilos para la página de control de sensores */
 .sensors-section {
     margin-top: 2rem;
     margin-bottom: 2rem;
@@ -196,7 +191,6 @@ td {
 .sensor-card .btn-action:hover {
     background: #1d4ed8;
 }
-/* Reset y configuraciones básicas */
 * {
     margin: 0;
     padding: 0;
@@ -231,7 +225,6 @@ body {
     overflow-x: hidden;
 }
 
-/* Layout principal */
 .header {
     position: fixed;
     top: 0;
@@ -301,7 +294,6 @@ body {
     font-weight: 500;
 }
 
-/* Sidebar */
 .sidebar {
     position: fixed;
     top: 70px;
@@ -365,7 +357,6 @@ body {
     filter: drop-shadow(0 1px 2px #232e41cc);
 }
 
-/* Contenido principal */
 .main-content {
     margin-left: 280px;
     margin-top: 70px;
@@ -376,7 +367,6 @@ body {
     box-shadow: 0 8px 32px 0 rgba(30,41,59,0.10);
 }
 
-/* Sección KPI */
 .kpi-section {
     margin-bottom: 2rem;
 }
@@ -470,7 +460,6 @@ body {
     color: var(--text-secondary);
 }
 
-/* Sección de gráficos */
 .charts-section {
     margin-bottom: 2rem;
 }
@@ -516,7 +505,6 @@ body {
     position: relative;
 }
 
-/* Sección de datos */
 .data-section {
     margin-bottom: 2rem;
 }
@@ -630,7 +618,6 @@ body {
     color: var(--primary-color);
 }
 
-/* Loading overlay */
 .loading-overlay {
     position: fixed;
     top: 0;
@@ -671,7 +658,6 @@ body {
     font-weight: 500;
 }
 
-/* Responsive Design */
 @media (max-width: 1200px) {
     .charts-grid {
         grid-template-columns: 1fr;
@@ -734,7 +720,6 @@ body {
     }
 }
 
-/* Animaciones */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -764,7 +749,6 @@ body {
     animation-delay: 0.3s;
 }
 
-/* Scrollbar personalizado */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -782,7 +766,6 @@ body {
     background: var(--text-secondary);
 }
 
-/* Estilos para la tarjeta de evento reciente */
 #recent-event-display {
     font-size: 0.9rem;
     color: #334155;
@@ -808,82 +791,70 @@ body {
     font-style: italic;
 }
 
-/* ======================================== */
-/* --- ESTILOS MEJORADOS PARA EL DASHBOARD --- */
-/* ======================================== */
-
-/* Mejora general para el título de todas las tarjetas KPI */
 .kpi-info h3 {
     font-size: 0.875rem;
-    color: #cbd5e1; /* <-- CAMBIO: Un gris más claro para mejor contraste */
+    color: #cbd5e1; 
     font-weight: 500;
     margin-bottom: 0.25rem;
-    text-transform: uppercase; /* Opcional: para un look más de dashboard */
+    text-transform: uppercase; 
     letter-spacing: 0.5px;
 }
 
-/* Contenedor específico para la información del evento reciente */
 #recent-event-display {
-    font-size: 1rem;    /* Aumenta el tamaño base */
-    color: #f1f5f9;     /* Un color casi blanco para el texto principal */
-    margin-top: 8px;    /* Más espacio desde el título */
+    font-size: 1rem;   
+    color: #f1f5f9;     
+    margin-top: 8px;    
 }
 
 #recent-event-display .event-details {
     display: flex;
     align-items: center;
-    gap: 10px;          /* Un poco más de espacio entre icono y texto */
-    font-weight: 600;   /* Texto en negrita para la descripción */
-    font-size: 1.1rem;  /* Un poco más grande para que sea el foco */
+    gap: 10px;          
+    font-weight: 600;   
+    font-size: 1.1rem;  
 }
 
-/* Colores e iconos específicos para cada tipo de evento */
+
 #recent-event-display .event-details.motion {
-    color: #f87171; /* Rojo claro para movimiento */
+    color: #f87171;  
 }
 
 #recent-event-display .event-details.vibration {
-    color: #facc15; /* Amarillo/Dorado para vibración */
+    color: #facc15;  
 }
 
 #recent-event-display .event-time {
     font-size: 0.8rem;
-    color: #94a3b8;     /* Un gris más suave para la hora */
+    color: #94a3b8;     
     margin-top: 4px;
-    padding-left: 34px; /* Alinea la hora con el texto de la descripción (ajusta si es necesario) */
+    padding-left: 34px;  
 }
 
 #recent-event-display .no-events {
     font-size: 0.9rem;
-    color: #64748b;     /* Mantenemos un gris oscuro para el mensaje por defecto */
+    color: #64748b;      
     font-style: italic;
 }
 
-/* ======================================================= */
-/* --- CORRECCIÓN FINAL DE COLORES DEL DASHBOARD (V3) --- */
-/* ======================================================= */
-
-/* 1. Apunta a los TÍTULOS de TODAS las tarjetas (h3 y small) */
+ 
 .kpi-card h3,
 .kpi-card small {
-    color: #cbd5e1; /* Gris claro para un buen contraste */
+    color: #cbd5e1;  
     font-weight: 500;
     text-transform: uppercase;
     font-size: 0.8rem;
     letter-spacing: 0.5px;
 }
 
-/* 2. Apunta a los VALORES principales ("Activo", "0", etc.) */
-/* Estamos apuntando al párrafo <p> que está dentro de .kpi-info */
+ 
 .kpi-card .kpi-info p {
-    color: #ffffff; /* Blanco para máximo contraste */
+    color: #ffffff;  
     font-size: 1.875rem;
     font-weight: 700;
 }
 
 
-/* --- Estilos para la tarjeta de "Última Alerta" (ya deberían estar bien, pero los incluimos para asegurar) --- */
-
+ 
 #recent-event-display .event-details {
     display: flex;
     align-items: center;
@@ -893,50 +864,43 @@ body {
 }
 
 #recent-event-display .event-details.motion {
-    color: #f87171; /* Rojo claro */
+    color: #f87171;  
 }
 
 #recent-event-display .event-details.vibration {
-    color: #facc15; /* Amarillo */
+    color: #facc15; 
 }
 
 #recent-event-display .event-time {
     font-size: 0.8rem;
-    color: #94a3b8; /* Gris suave */
+    color: #94a3b8;  
     margin-top: 4px;
     padding-left: 34px;
 }
-/* ======================================================= */
-/* --- CORRECCIÓN DE COLOR PARA TÍTULO DE LA TABLA --- */
-/* ======================================================= */
-
+ 
 .data-header h3 {
-    color: #e2e8f0; /* Color blanco/gris claro, igual que el título del gráfico */
+    color: #e2e8f0;  
 }
 
-/* ======================================== */
-/* --- ESTILOS PARA TARJETA DE CONTROL --- */
-/* ======================================== */
-
-/* Hace que la tarjeta sea clickable */
+ 
+ 
 #alarm-control-card {
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
-/* Efecto al pasar el mouse */
+ 
 #alarm-control-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    border-color: #60a5fa; /* Un borde azul para indicar acción */
+    border-color: #60a5fa;  
 }
 
-/* Estilos para el ícono cuando el sistema está ARMADO */
+ 
 #system-status-icon.armed {
-    background: linear-gradient(135deg, #f87171, #ef4444); /* Rojo de alarma */
+    background: linear-gradient(135deg, #f87171, #ef4444);  
 }
 
-/* Estilos para el ícono cuando el sistema está DESARMADO */
-#system-status-icon.disarmed {
-    background: linear-gradient(135deg, #4ade80, #22c55e); /* Verde de seguridad */
+ #system-status-icon.disarmed {
+    background: linear-gradient(135deg, #4ade80, #22c55e);  
 }

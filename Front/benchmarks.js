@@ -1,15 +1,13 @@
 // API Base URL
 const API_URL = 'http://localhost:3000/api';
 
-// Elementos del DOM
+
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
 const lastUpdateSpan = document.getElementById('last-update');
 const refreshBtn = document.getElementById('refresh-btn');
 
-/**
- * Obtiene los benchmarks del servidor
- */
+
 async function loadBenchmarks() {
     try {
         if (loadingDiv) loadingDiv.style.display = 'block';
@@ -41,9 +39,9 @@ async function loadBenchmarks() {
     }
 }
 
-/**
- * Renderiza los benchmarks en el HTML
- */
+
+// Renderiza los benchmarks en el HTML
+
 function renderBenchmarks(stats) {
     try {
         // ========== BENCHMARK 1: LOGIN ==========
@@ -115,9 +113,6 @@ function renderBenchmarks(stats) {
     }
 }
 
-/**
- * Actualiza la hora de última actualización
- */
 function updateLastUpdateTime() {
     const now = new Date();
     const timeString = now.toLocaleString('es-CL', {
@@ -131,9 +126,7 @@ function updateLastUpdateTime() {
     if (lastUpdateSpan) lastUpdateSpan.textContent = timeString;
 }
 
-/**
- * Marca un evento como real o falso positivo
- */
+
 async function markEventAsFalsePositive(eventId, isFalse) {
     try {
         const response = await fetch(`${API_URL}/benchmarks/event/${eventId}`, {
@@ -152,14 +145,12 @@ async function markEventAsFalsePositive(eventId, isFalse) {
 
         console.log(`✅ Evento ${eventId} marcado como ${isFalse ? 'falso positivo' : 'real'}`);
         
-        // Recargar benchmarks después de marcar
         setTimeout(loadBenchmarks, 500);
     } catch (error) {
         console.error('❌ Error marcando evento:', error);
     }
 }
 
-// ========== EVENT LISTENERS ==========
 
 // Botón actualizar
 if (refreshBtn) {
@@ -169,16 +160,15 @@ if (refreshBtn) {
     });
 }
 
-/**
- * Función para mostrar modal de confirmación bonito
- */
+
+// Función para mostrar modal de confirmación bonito
+
 function showConfirmModal(title, message, onConfirm) {
     return new Promise((resolve) => {
-        // Crear overlay
+
         const overlay = document.createElement('div');
         overlay.className = 'confirm-modal-overlay';
         
-        // Crear modal
         const modal = document.createElement('div');
         modal.className = 'confirm-modal';
         modal.innerHTML = `
@@ -220,7 +210,6 @@ function showConfirmModal(title, message, onConfirm) {
             resolve(true);
         });
         
-        // Cerrar con ESC
         const handleEsc = (e) => {
             if (e.key === 'Escape') {
                 document.removeEventListener('keydown', handleEsc);
@@ -230,14 +219,12 @@ function showConfirmModal(title, message, onConfirm) {
         };
         document.addEventListener('keydown', handleEsc);
         
-        // Trigger la animación de entrada
         setTimeout(() => overlay.classList.add('active'), 10);
     });
 }
 
-/**
- * Botón limpiar TODOS los datos
- */
+// Botón limpiar TODOS los datos
+
 const clearAllBtn = document.getElementById('clear-all-btn');
 if (clearAllBtn) {
     clearAllBtn.addEventListener('click', async () => {
@@ -305,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(loadBenchmarks, 30000);
 });
 
-// Exportar función para usar desde otras páginas si es necesario
+
 window.benchmarkModule = {
     loadBenchmarks,
     markEventAsFalsePositive

@@ -23,7 +23,6 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         });
         const data = await res.json();
         if (res.ok && data.mfaRequired) {
-            // Mostrar campo MFA y botón de verificación
             document.getElementById('mfaGroup').style.display = 'block';
             registerBtn.style.display = 'none';
             let extra = '';
@@ -34,9 +33,7 @@ document.getElementById('registerForm').addEventListener('submit', async functio
             alertBox.classList.remove('alert-error');
             alertBox.classList.add('alert-success');
             alertBox.style.display = 'block';
-            // Guardar email para verificación
             window._registerEmail = email;
-            // Si el registro es con MFA, redirigir al login tras activar usuario (ver abajo)
         } else {
             if (data.success) {
                 alertMsg.textContent = '¡Usuario registrado exitosamente! Ahora puedes iniciar sesión.';
@@ -57,7 +54,6 @@ document.getElementById('registerForm').addEventListener('submit', async functio
         alertBox.classList.add('alert-error');
         alertBox.style.display = 'block';
     }
-    // No volver a habilitar el botón hasta que el usuario termine el proceso MFA
 // Verificar código MFA y activar usuario
 document.getElementById('verifyMfaBtn').addEventListener('click', async function() {
     const mfaCode = document.getElementById('mfaCode').value.trim();
@@ -99,19 +95,16 @@ document.getElementById('verifyMfaBtn').addEventListener('click', async function
     }
     this.disabled = false;
 });
-    // Eliminado: doble fetch innecesario que causaba doble envío de código
+    
 });
 
 // Mostrar/ocultar contraseña
-// Cambiar visual según tipo de registro
 document.querySelectorAll('input[name="registerType"]').forEach(radio => {
     radio.addEventListener('change', function() {
-        // Guardar la opción seleccionada en localStorage antes de recargar
         localStorage.setItem('registerTypeSelected', this.value);
         window.location.reload();
     });
 });
-// Al cargar la página, restaurar la opción seleccionada si existe
 window.addEventListener('DOMContentLoaded', () => {
     const selected = localStorage.getItem('registerTypeSelected');
     if (selected) {

@@ -75,7 +75,7 @@ class DatabaseManager {
     }
   }
 
-  // ✅ AGREGAR ESTE MÉTODO
+
   async healthCheck() {
     try {
       if (!this.pool) {
@@ -128,10 +128,10 @@ class DatabaseManager {
   }
 }
 
-// Crear instancia singleton
+
 const dbManager = new DatabaseManager();
 
-// Exportar la instancia y propiedades útiles
+
 module.exports = dbManager;
 module.exports.pool = dbManager.pool;
 module.exports.isAvailable = () => dbManager.isAvailable;

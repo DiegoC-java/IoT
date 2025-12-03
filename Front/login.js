@@ -172,7 +172,6 @@ async function handleLogin(e) {
                 return;
             }
             
-            // Remover el event listener del formulario temporalmente
             const loginForm = document.getElementById('loginForm');
             if (loginForm) {
                 loginForm.onsubmit = function(ev) {
@@ -226,7 +225,6 @@ async function handleLogin(e) {
         console.error('❌ Error en login:', error);
         showAlert('Error de conexión. Usando autenticación local.', 'error');
         
-        // Fallback a autenticación local
         const localAuth = authenticateLocally(usernameInput.value.trim(), passwordInput.value);
         if (localAuth.success) {
             await handleSuccessfulLogin(localAuth.user, rememberMe);
@@ -265,7 +263,6 @@ async function authenticateWithBackend(username, password) {
             console.log('¿success?:', result.success);
             console.log('¿email?:', result.email);
             
-            // Si el backend requiere MFA
             if (result.mfaRequired) {
                 console.log('✅ DETECTADO: MFA requerido');
                 return {
@@ -276,7 +273,6 @@ async function authenticateWithBackend(username, password) {
                 };
             }
             
-            // Si el login fue exitoso (sin MFA)
             if (result.success) {
                 console.log('✅ DETECTADO: Login exitoso sin MFA');
                 return {
@@ -299,7 +295,7 @@ async function authenticateWithBackend(username, password) {
     }
 }
 
-// Autenticación local (fallback)
+// Autenticación local
 function authenticateLocally(username, password) {
     console.log('🔍 Buscando en usuarios locales...');
     
@@ -323,7 +319,6 @@ function authenticateLocally(username, password) {
 async function handleSuccessfulLogin(user, rememberMe) {
     console.log('🎉 Login exitoso:', user);
     
-    // Guardar información de la sesión
     const sessionData = {
         username: user.username,
         role: user.role,
@@ -334,17 +329,14 @@ async function handleSuccessfulLogin(user, rememberMe) {
     localStorage.setItem('iot_user', JSON.stringify(sessionData));
     localStorage.setItem('iot_login_time', sessionData.loginTime.toString());
     
-    // Guardar credenciales si se solicitó
     if (rememberMe) {
         localStorage.setItem('iot_remember_user', user.username);
     } else {
         localStorage.removeItem('iot_remember_user');
     }
     
-    // Mostrar mensaje de éxito
     showAlert(`¡Bienvenido, ${user.username}!`, 'success');
     
-    // Restaurar formulario a estado original
     const loginForm = document.getElementById('loginForm');
     const loginBtn = document.getElementById('loginBtn');
     
@@ -359,19 +351,16 @@ async function handleSuccessfulLogin(user, rememberMe) {
         loginBtn.onclick = null;
     }
     
-    // Ocultar campo MFA si estaba visible
     const mfaGroup = document.getElementById('mfaGroup');
     if (mfaGroup) {
         mfaGroup.style.display = 'none';
     }
     
-    // Redirigir después de un breve delay
     setTimeout(() => {
         redirectToDashboard();
     }, 1500);
 }
 
-// Manejar validación de código MFA
 async function handleMfaLogin(username, rememberMe) {
     const mfaCodeInput = document.getElementById('mfaCode');
     const mfaCode = mfaCodeInput ? mfaCodeInput.value.trim() : '';
@@ -411,7 +400,6 @@ async function handleMfaLogin(username, rememberMe) {
         const result = await response.json();
         if (result.success) {
             console.log('✅ Código MFA válido, login completado');
-            // Construir objeto usuario desde la respuesta
             const user = {
                 username: result.user.username,
                 role: result.user.role,
@@ -433,7 +421,6 @@ async function handleMfaLogin(username, rememberMe) {
 function redirectToDashboard() {
     console.log('🚀 Redirigiendo al dashboard...');
     
-    // Efecto de transición
     document.body.style.transition = 'opacity 0.3s ease-out';
     document.body.style.opacity = '0';
     
@@ -442,7 +429,6 @@ function redirectToDashboard() {
     }, 300);
 }
 
-// Toggle de visibilidad de contraseña
 function togglePasswordVisibility() {
     const passwordInput = document.getElementById('password');
     const toggleIcon = document.querySelector('#togglePassword i');
@@ -459,7 +445,6 @@ function togglePasswordVisibility() {
         toggleIcon.classList.add('fa-eye');
     }
     
-    // Mantener el foco
     passwordInput.focus();
 }
 
@@ -490,7 +475,7 @@ function setLoadingState(loading) {
     }
 }
 
-// Mostrar alerta
+
 function showAlert(message, type = 'error') {
     const alert = document.getElementById('alert');
     const alertMessage = document.querySelector('.alert-message');
@@ -501,11 +486,9 @@ function showAlert(message, type = 'error') {
     alert.className = `alert ${type}`;
     alert.style.display = 'flex';
     
-    // Auto-ocultar después de 5 segundos
     setTimeout(clearAlert, 5000);
 }
 
-// Limpiar alerta
 function clearAlert() {
     const alert = document.getElementById('alert');
     if (alert) {
@@ -513,7 +496,6 @@ function clearAlert() {
     }
 }
 
-// Animación de error en la tarjeta
 function shakeLoginCard() {
     const card = document.querySelector('.login-card');
     if (card) {
@@ -524,7 +506,6 @@ function shakeLoginCard() {
     }
 }
 
-// Cargar credenciales guardadas
 function loadSavedCredentials() {
     const savedUser = localStorage.getItem('iot_remember_user');
     const usernameInput = document.getElementById('username');
@@ -538,23 +519,19 @@ function loadSavedCredentials() {
     }
 }
 
-// Limpiar sesión
 function clearSession() {
     localStorage.removeItem('iot_user');
     localStorage.removeItem('iot_login_time');
 }
 
-// Función de logout (para uso global)
 function logout() {
     clearSession();
     localStorage.removeItem('iot_remember_user');
     window.location.href = 'login.html';
 }
 
-// Exportar función logout para uso global
 window.logout = logout;
 
-// Agregar estilos dinámicos para animaciones
 const style = document.createElement('style');
 style.textContent = `
     @keyframes shake {

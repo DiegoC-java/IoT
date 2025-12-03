@@ -1,9 +1,6 @@
 const bcrypt = require('bcrypt');
 
-/**
- * Script de utilidad para generar hashes de contraseñas con bcrypt
- * Uso: node hashPassword.js <contraseña>
- */
+
 
 async function hashPassword(password) {
     try {
@@ -29,7 +26,7 @@ async function testPassword(password, hash) {
     }
 }
 
-// Ejecutar desde línea de comandos
+
 if (require.main === module) {
     const args = process.argv.slice(2);
     

@@ -8,12 +8,11 @@ const benchmarkService = require('../Benchmark/benchmarkService');
 const { pool } = require('../database');
 console.log('routes/devices loaded — pool available:', !!pool);
 
-// GET - Histograma de activaciones de alarma por hora
 router.get('/events/histograma-horas', async (req, res) => {
     try {
         if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });
 
-        // Consulta: cuenta activaciones de alarma por hora (0-23)
+
         const result = await pool.query(`
             SELECT
                 EXTRACT(HOUR FROM timestamp) AS hora,
@@ -38,7 +37,6 @@ router.get('/events/histograma-horas', async (req, res) => {
     }
 });
 
-// (Tus datos simulados y funciones de mapeo se mantienen igual)
 const simulatedDevices = [
     {
         id: 'DEV-001', name: 'Sensor Temperatura Exterior', type: 'Sensor Temperatura',
@@ -64,7 +62,7 @@ function mapRowToDevice(row) {
     };
 }
 
-// (Tus rutas GET /devices y GET /devices/:id se mantienen igual)
+
 router.get('/devices', async (req, res) => {
     try {
         if (!pool) {
@@ -101,7 +99,6 @@ router.get('/devices/:id', async (req, res) => {
 
 
 
-// Refactor: Validar datos del evento
 function validateEventData(body) {
     const requiredFields = ['device_id', 'event_type', 'sensor_type', 'sensor_value', 'timestamp'];
     for (const field of requiredFields) {
@@ -112,13 +109,11 @@ function validateEventData(body) {
     return null;
 }
 
-// Refactor: Manejo de errores
 function handleError(res, error, message = 'Error interno') {
     console.error(message, error);
     res.status(500).json({ success: false, message: error.message || message });
 }
 
-// POST - Recibir eventos de sensores (refactorizado)
 router.post('/events', async (req, res) => {
     try {
         console.log('📥 Evento recibido:', req.body);
@@ -156,7 +151,6 @@ router.post('/events', async (req, res) => {
 });
 
 
-// GET - Obtener el último evento para el dashboard (Sin cambios)
 router.get('/events/latest', async (req, res) => {
     try {
         if (!pool) return res.status(503).json({ success: false, message: 'Base de datos no disponible' });

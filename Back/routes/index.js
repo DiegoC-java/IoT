@@ -27,7 +27,6 @@ router.get('/health', async (req, res) => {
     }
 });
 
-// Importar otras rutas
 router.use('/', require('./auth'));
 router.use('/', require('./devices'));
 router.use('/', require('./dashboard'));

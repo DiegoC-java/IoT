@@ -4,7 +4,7 @@ async function toggleSensor(sensor) {
     const isActive = btn.textContent === 'Desactivar';
     btn.textContent = isActive ? 'Activar' : 'Desactivar';
     btn.classList.toggle('active', !isActive);
-    // Llamada al backend para activar/desactivar el sensor
+
     try {
         const response = await fetch(`http://localhost:3000/api/sensors/${sensor}/${isActive ? 'off' : 'on'}`, {
             method: 'POST'
